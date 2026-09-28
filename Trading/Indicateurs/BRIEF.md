@@ -30,6 +30,7 @@
 - **Intermediate low** : le prix mèche dans une FVG haussière et la respecte. Le bas de cette mèche devient l'intermediate low, **confirmé** quand le prix repasse au-dessus du plus haut d'avant le retracement. C'est un niveau où le prix revient souvent avant de repartir. Intermediate high : même logique inversée.
 - **CISD haussier** : pendant un retracement dans une FVG haussière, les petits timeframes font des plus bas de plus en plus bas. Le CISD se déclenche quand une bougie **clôture** au-dessus de l'**open** de la première bougie de la série baissière qui a fait le plus bas. Ce niveau devient un support clé. CISD baissier : l'inverse.
 - **Rejection block haussier** : dans une grosse FVG haussière 15m, 30m, 1H ou 4H, une bougie **haussière** (dans le sens de la tendance, c'est obligatoire) laisse une grande mèche basse. Le rejection block est la zone de la mèche, de l'open au low. Il est invalidé par une clôture sous le low. Rejection block baissier : une bougie **baissière** avec une grande mèche haute dans une FVG baissière, zone de l'open au high.
+- **Range / marché choppy** : le prix ne respecte ni les FVG haussières ni les FVG baissières. Un TF est « en range » quand, sur ses derniers événements FVG, des FVG ↑ **et** des FVG ↓ ont été cassées et que le sens change sans arrêt. Un TF en range ne vote pas pour le biais. Si assez de poids est en range, le biais du jour est **RANGE** et on ne trade pas. Si le score est trop faible, le biais est « pas de biais » au lieu d'un faux haussier/baissier.
 
 ## Ce que fait l'indicateur
 

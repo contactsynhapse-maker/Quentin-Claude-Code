@@ -51,6 +51,13 @@ cisdRec    = input.int(15, "CISD « récent » = moins de N bougies", minval = 1
 alertOn    = input.bool(true, "Alerte : CISD dans le sens du biais", group = G_CI)
 alertNYonly = input.bool(true, "Alerte seulement pendant la fenêtre NY", group = G_CI)
 
+G_CH = "Range / marché choppy"
+chopOn    = input.bool(true, "Détecter les ranges (pas de biais si le marché ne respecte rien)", group = G_CH)
+chopN     = input.int(6, "Fenêtre : derniers N événements FVG par TF", minval = 4, maxval = 20, group = G_CH)
+chopFlips = input.int(3, "TF en range si ≥ N changements de sens (+ FVG ↑ et ↓ cassées)", minval = 1, maxval = 19, group = G_CH)
+chopPct   = input.int(40, "Marché en RANGE si ≥ X % du poids des TF en range", minval = 1, maxval = 100, group = G_CH)
+convPct   = input.int(30, "Biais seulement si |score| ≥ X % du score max", minval = 0, maxval = 100, group = G_CH)
+
 G_S = "Sessions & liquidité (heure de New York)"
 nySess   = input.session("0930-1100", "Fenêtre de trading", group = G_S)
 showNYbg = input.bool(true, "Surligner la fenêtre", group = G_S)
@@ -94,12 +101,18 @@ type RB
     box    bx
     bool   alive = true
 
+// Historique des derniers événements FVG d'un TF (pour détecter les ranges)
+type Hist
+    array<int> dirs        // +1 / -1
+    array<int> brk         // 1 = cassure (FVG invalidée), 0 = respect / nouvelle FVG
+
 var array<FVG>    fvgs    = array.new<FVG>()
 var array<RB>     rbs     = array.new<RB>()
 var array<Lvl>    ims     = array.new<Lvl>()
 var array<Lvl>    cisds   = array.new<Lvl>()
 var array<int>    biasArr = array.new_int(6, 0)
 var array<string> txtArr  = array.new_string(6, "—")
+var array<Hist>   hists   = array.from(Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()))
 
 // ═════════════════════════ OUTILS ═════════════════════════
 fmt(float x) => str.tostring(x, format.mintick)
@@ -298,6 +311,12 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
     if evDir != 0
         array.set(biasArr, idx, evDir)
         array.set(txtArr, idx, evTxt)
+        Hist hs = array.get(hists, idx)
+        array.push(hs.dirs, evDir)
+        array.push(hs.brk, evPri == 3 ? 1 : 0)
+        if array.size(hs.dirs) > chopN
+            array.shift(hs.dirs)
+            array.shift(hs.brk)
     evDir
 
 // Le balayage (plus bas/haut) touche-t-il une zone 15m+ du bon sens ?
@@ -368,13 +387,44 @@ updLvls(ims)
 // ═════════════════════════ BIAIS GLOBAL ═════════════════════════
 wArr = array.from(w1, w2, w3, w4, w5, w6)
 vArr = array.from(v1, v2, v3, v4, v5, v6)
+var array<bool>   chopArr = array.new_bool(6, false)
+var array<string> chopTxt = array.new_string(6, "")
 float score    = 0
 float maxScore = 0
+float chopW    = 0
 for i = 0 to 5
     if array.get(vArr, i)
-        score    += array.get(biasArr, i) * array.get(wArr, i)
-        maxScore += array.get(wArr, i)
-biasSign = score > 0 ? 1 : score < 0 ? -1 : 0
+        int  w   = array.get(wArr, i)
+        Hist hs  = array.get(hists, i)
+        int  cnt = array.size(hs.dirs)
+        int  flips = 0
+        int  bBull = 0   // FVG ↑ cassées
+        int  bBear = 0   // FVG ↓ cassées
+        if cnt > 0
+            for j = 0 to cnt - 1
+                int d = array.get(hs.dirs, j)
+                if j > 0 and d != array.get(hs.dirs, j - 1)
+                    flips += 1
+                if array.get(hs.brk, j) == 1
+                    if d == -1
+                        bBull += 1
+                    else
+                        bBear += 1
+        // Range : ni les FVG ↑ ni les FVG ↓ ne sont respectées, et le sens change sans arrêt
+        bool ch = chopOn and cnt >= 4 and bBull > 0 and bBear > 0 and flips >= chopFlips
+        array.set(chopArr, i, ch)
+        array.set(chopTxt, i, "Range : " + str.tostring(flips) + " chgts de sens / " + str.tostring(cnt) + " évts, " + str.tostring(bBull) + " FVG↑ et " + str.tostring(bBear) + " FVG↓ cassées")
+        maxScore += w
+        if ch
+            chopW += w          // un TF en range ne vote pas
+        else
+            score += array.get(biasArr, i) * w
+chopShare = maxScore > 0 ? chopW / maxScore : 0.0
+conv      = maxScore > 0 ? math.abs(score) / maxScore : 0.0
+isRange   = chopOn and chopShare * 100 >= chopPct
+rawSign   = score > 0 ? 1 : score < 0 ? -1 : 0
+// Pas de biais « par défaut » : range ou conviction trop faible → 0
+biasSign  = isRange ? 0 : conv * 100 >= convPct ? rawSign : 0
 
 // ═════════════════════════ SESSIONS & LIQUIDITÉ ═════════════════════════
 inS(string s) => not na(time(timeframe.period, s, "America/New_York"))
@@ -527,6 +577,7 @@ cell(int c, int r, string t, color tc, color bg) =>
 
 cGreen = color.new(#089981, 0)
 cRed   = color.new(#F23645, 0)
+cOrng  = color.new(#FF9800, 0)
 cMuted = color.new(chart.fg_color, 45)
 noBg   = color.new(color.black, 100)
 hdrBg  = color.new(chart.fg_color, 90)
@@ -608,7 +659,10 @@ if barstate.islast
 
     int bH = array.get(biasArr, 4)
     int bD = array.get(biasArr, 5)
-    bool ok1 = biasSign != 0 and (not v5 or bH == biasSign) and (not v6 or bD == biasSign)
+    bool cH  = array.get(chopArr, 4)
+    bool cD  = array.get(chopArr, 5)
+    bool ok0 = not isRange
+    bool ok1 = biasSign != 0 and (not v5 or (bH == biasSign and not cH)) and (not v6 or (bD == biasSign and not cD))
     bool ok2 = zTxt != ""
     bool ok3 = biasSign != 0 and lastCisdDir == biasSign and not na(lastCisdBar) and bar_index - lastCisdBar <= cisdRec
     bool ok4 = inNY
@@ -625,34 +679,42 @@ if barstate.islast
         bool v = array.get(vArr, i)
         int  b = array.get(biasArr, i)
         cell(0, 2 + i, array.get(tfs, i), chart.fg_color, noBg)
-        cell(1, 2 + i, v ? biasTxt(b) : "n/a", v ? biasCol(b) : cMuted, noBg)
-        cell(2, 2 + i, v ? array.get(txtArr, i) : "TF < graphique", cMuted, noBg)
+        bool ch = array.get(chopArr, i)
+        cell(1, 2 + i, not v ? "n/a" : ch ? "↔ Range" : biasTxt(b), not v ? cMuted : ch ? cOrng : biasCol(b), noBg)
+        cell(2, 2 + i, not v ? "TF < graphique" : ch ? array.get(chopTxt, i) : array.get(txtArr, i), cMuted, noBg)
+    string pct = str.tostring(math.round(conv * 100)) + " %"
     cell(0, 8, "BIAIS DU JOUR", chart.fg_color, hdrBg)
-    cell(1, 8, biasSign == 1 ? "▲ HAUSSIER" : biasSign == -1 ? "▼ BAISSIER" : "NEUTRE", biasCol(biasSign), hdrBg)
-    cell(2, 8, "score " + (score > 0 ? "+" : "") + str.tostring(score, "#") + " / " + str.tostring(maxScore, "#"), cMuted, hdrBg)
-    cell(0, 9, "DOL ↑", cGreen, noBg)
-    cell(1, 9, upNm, chart.fg_color, noBg)
-    cell(2, 9, na(upPx) ? "—" : fmt(upPx) + "  (+" + str.tostring(upPx - close, "#.##") + " pts)", cMuted, noBg)
-    cell(0, 10, "DOL ↓", cRed, noBg)
-    cell(1, 10, dnNm, chart.fg_color, noBg)
-    cell(2, 10, na(dnPx) ? "—" : fmt(dnPx) + "  (−" + str.tostring(close - dnPx, "#.##") + " pts)", cMuted, noBg)
-    cell(0, 11, "Fenêtre NY", chart.fg_color, noBg)
-    cell(1, 11, winParis, chart.fg_color, noBg)
-    cell(2, 11, nyStatus, inNY ? cGreen : cMuted, noBg)
-    cell(0, 12, "CHECKLIST", chart.fg_color, hdrBg)
-    table.merge_cells(tb, 0, 12, 2, 12)
-    cell(0, 13, "1  Biais HTF aligné", chart.fg_color, noBg)
-    cell(1, 13, check(ok1), ok1 ? cGreen : cRed, noBg)
-    cell(2, 13, "4H " + biasTxt(bH) + "  ·  D " + biasTxt(bD), cMuted, noBg)
-    cell(0, 14, "2  Zone clé touchée", chart.fg_color, noBg)
-    cell(1, 14, check(ok2), ok2 ? cGreen : cRed, noBg)
-    cell(2, 14, ok2 ? zTxt : "pas encore", cMuted, noBg)
-    cell(0, 15, "3  Confirmation CISD", chart.fg_color, noBg)
-    cell(1, 15, check(ok3), ok3 ? cGreen : cRed, noBg)
-    cell(2, 15, na(lastCisdBar) ? "—" : (lastCisdDir == 1 ? "↑ " : "↓ ") + "il y a " + str.tostring(bar_index - lastCisdBar) + " bougies", cMuted, noBg)
-    cell(0, 16, "4  Dans la fenêtre NY", chart.fg_color, noBg)
-    cell(1, 16, check(ok4), ok4 ? cGreen : cRed, noBg)
-    cell(2, 16, nyStatus, cMuted, noBg)
-    cell(0, 17, "5  Cible (DOL) claire", chart.fg_color, noBg)
-    cell(1, 17, check(ok5), ok5 ? cGreen : cRed, noBg)
-    cell(2, 17, biasSign == 1 ? upNm : biasSign == -1 ? dnNm : "—", cMuted, noBg)
+    cell(1, 8, isRange ? "↔ RANGE" : biasSign == 1 ? "▲ HAUSSIER" : biasSign == -1 ? "▼ BAISSIER" : "PAS DE BIAIS", isRange ? cOrng : biasCol(biasSign), hdrBg)
+    cell(2, 8, "score " + (score > 0 ? "+" : "") + str.tostring(score, "#") + " / " + str.tostring(maxScore, "#") + " (" + pct + ")", cMuted, hdrBg)
+    cell(0, 9, "État du marché", chart.fg_color, noBg)
+    cell(1, 9, isRange ? "⚠ CHOPPY" : biasSign == 0 ? "Indécis" : "Propre", isRange ? cOrng : biasSign == 0 ? cMuted : cGreen, noBg)
+    cell(2, 9, isRange ? str.tostring(math.round(chopShare * 100)) + " % du poids en range — ne pas trader" : biasSign == 0 ? "conviction " + pct + " < " + str.tostring(convPct) + " % — pas de biais" : str.tostring(math.round(chopShare * 100)) + " % du poids en range", cMuted, noBg)
+    cell(0, 10, "DOL ↑", cGreen, noBg)
+    cell(1, 10, upNm, chart.fg_color, noBg)
+    cell(2, 10, na(upPx) ? "—" : fmt(upPx) + "  (+" + str.tostring(upPx - close, "#.##") + " pts)", cMuted, noBg)
+    cell(0, 11, "DOL ↓", cRed, noBg)
+    cell(1, 11, dnNm, chart.fg_color, noBg)
+    cell(2, 11, na(dnPx) ? "—" : fmt(dnPx) + "  (−" + str.tostring(close - dnPx, "#.##") + " pts)", cMuted, noBg)
+    cell(0, 12, "Fenêtre NY", chart.fg_color, noBg)
+    cell(1, 12, winParis, chart.fg_color, noBg)
+    cell(2, 12, nyStatus, inNY ? cGreen : cMuted, noBg)
+    cell(0, 13, "CHECKLIST", chart.fg_color, hdrBg)
+    table.merge_cells(tb, 0, 13, 2, 13)
+    cell(0, 14, "1  Marché propre (pas de range)", chart.fg_color, noBg)
+    cell(1, 14, check(ok0), ok0 ? cGreen : cRed, noBg)
+    cell(2, 14, ok0 ? "ok" : "range / choppy — on ne trade pas", cMuted, noBg)
+    cell(0, 15, "2  Biais HTF aligné", chart.fg_color, noBg)
+    cell(1, 15, check(ok1), ok1 ? cGreen : cRed, noBg)
+    cell(2, 15, "4H " + (cH ? "↔ Range" : biasTxt(bH)) + "  ·  D " + (cD ? "↔ Range" : biasTxt(bD)), cMuted, noBg)
+    cell(0, 16, "3  Zone clé touchée", chart.fg_color, noBg)
+    cell(1, 16, check(ok2), ok2 ? cGreen : cRed, noBg)
+    cell(2, 16, ok2 ? zTxt : "pas encore", cMuted, noBg)
+    cell(0, 17, "4  Confirmation CISD", chart.fg_color, noBg)
+    cell(1, 17, check(ok3), ok3 ? cGreen : cRed, noBg)
+    cell(2, 17, na(lastCisdBar) ? "—" : (lastCisdDir == 1 ? "↑ " : "↓ ") + "il y a " + str.tostring(bar_index - lastCisdBar) + " bougies", cMuted, noBg)
+    cell(0, 18, "5  Dans la fenêtre NY", chart.fg_color, noBg)
+    cell(1, 18, check(ok4), ok4 ? cGreen : cRed, noBg)
+    cell(2, 18, nyStatus, cMuted, noBg)
+    cell(0, 19, "6  Cible (DOL) claire", chart.fg_color, noBg)
+    cell(1, 19, check(ok5), ok5 ? cGreen : cRed, noBg)
+    cell(2, 19, biasSign == 1 ? upNm : biasSign == -1 ? dnNm : "—", cMuted, noBg)
