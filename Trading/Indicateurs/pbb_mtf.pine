@@ -1,0 +1,658 @@
+//@version=6
+indicator("PB Blake — Pré-session MTF", shorttitle = "PBB MTF", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ═════════════════════════ PARAMÈTRES ═════════════════════════
+G_TF = "Timeframes — biais & FVG"
+tf1 = input.timeframe("5",   "TF 1", inline = "1", group = G_TF)
+sh1 = input.bool(false,      "Dessiner", inline = "1", group = G_TF)
+w1  = input.int(1, "Poids", minval = 0, inline = "1", group = G_TF)
+tf2 = input.timeframe("15",  "TF 2", inline = "2", group = G_TF)
+sh2 = input.bool(true,       "Dessiner", inline = "2", group = G_TF)
+w2  = input.int(1, "Poids", minval = 0, inline = "2", group = G_TF)
+tf3 = input.timeframe("30",  "TF 3", inline = "3", group = G_TF)
+sh3 = input.bool(true,       "Dessiner", inline = "3", group = G_TF)
+w3  = input.int(2, "Poids", minval = 0, inline = "3", group = G_TF)
+tf4 = input.timeframe("60",  "TF 4", inline = "4", group = G_TF)
+sh4 = input.bool(true,       "Dessiner", inline = "4", group = G_TF)
+w4  = input.int(2, "Poids", minval = 0, inline = "4", group = G_TF)
+tf5 = input.timeframe("240", "TF 5", inline = "5", group = G_TF)
+sh5 = input.bool(true,       "Dessiner", inline = "5", group = G_TF)
+w5  = input.int(3, "Poids", minval = 0, inline = "5", group = G_TF)
+tf6 = input.timeframe("D",   "TF 6", inline = "6", group = G_TF)
+sh6 = input.bool(true,       "Dessiner", inline = "6", group = G_TF)
+w6  = input.int(3, "Poids", minval = 0, inline = "6", group = G_TF)
+
+G_FVG = "FVG / IFVG"
+maxPerTF = input.int(6, "FVG gardées par TF", minval = 1, maxval = 30, group = G_FVG)
+minGap   = input.float(0.0, "Taille min. d'une FVG (points)", minval = 0, group = G_FVG)
+cBull  = input.color(color.new(#089981, 82), "FVG ↑", inline = "c1", group = G_FVG)
+cBear  = input.color(color.new(#F23645, 82), "FVG ↓", inline = "c1", group = G_FVG)
+cIBull = input.color(color.new(#2962FF, 82), "IFVG ↑", inline = "c2", group = G_FVG)
+cIBear = input.color(color.new(#FF9800, 82), "IFVG ↓", inline = "c2", group = G_FVG)
+
+G_LV = "Intermediate highs / lows"
+showIM = input.bool(true, "Afficher", group = G_LV)
+maxLv  = input.int(8, "Nombre max. affiché", minval = 1, maxval = 50, group = G_LV)
+
+G_RB = "Rejection blocks"
+showRB   = input.bool(true, "Afficher", group = G_RB)
+rbTF     = input.timeframe("15", "TF minimum de la FVG", group = G_RB)
+rbWick   = input.float(0.4, "Mèche min. (part de la bougie)", minval = 0.1, maxval = 0.9, step = 0.05, group = G_RB)
+maxRB    = input.int(6, "Nombre max. affiché", minval = 1, maxval = 30, group = G_RB)
+cRBBull  = input.color(color.new(#089981, 65), "RB ↑", inline = "rb", group = G_RB)
+cRBBear  = input.color(color.new(#F23645, 65), "RB ↓", inline = "rb", group = G_RB)
+rbMinSec = timeframe.in_seconds(rbTF)
+
+G_CI = "CISD (timeframe du graphique)"
+showCISD   = input.bool(true, "Afficher", group = G_CI)
+cisdLen    = input.int(10, "Plus bas / plus haut balayé sur N bougies", minval = 3, group = G_CI)
+cisdInZone = input.bool(true, "Seulement si le balayage touche une FVG/IFVG 15m+", group = G_CI)
+cisdRec    = input.int(15, "CISD « récent » = moins de N bougies", minval = 1, group = G_CI)
+alertOn    = input.bool(true, "Alerte : CISD dans le sens du biais", group = G_CI)
+alertNYonly = input.bool(true, "Alerte seulement pendant la fenêtre NY", group = G_CI)
+
+G_S = "Sessions & liquidité (heure de New York)"
+nySess   = input.session("0930-1100", "Fenêtre de trading", group = G_S)
+showNYbg = input.bool(true, "Surligner la fenêtre", group = G_S)
+asiaSess = input.session("2000-2359", "Session Asie", group = G_S)
+lonSess  = input.session("0200-0500", "Session Londres", group = G_S)
+showLiq  = input.bool(true, "Afficher PDH/PDL, PWH/PWL, Asie, Londres", group = G_S)
+
+G_T = "Tableau"
+tblPos  = input.string("Haut droite", "Position", options = ["Haut droite", "Haut gauche", "Bas droite", "Bas gauche"], group = G_T)
+tblSize = input.string("Petit", "Taille", options = ["Minuscule", "Petit", "Normal"], group = G_T)
+
+// ═════════════════════════ TYPES & ÉTAT ═════════════════════════
+type FVG
+    float  top
+    float  bot
+    bool   bull            // sens à la création
+    int    tfIdx
+    int    sec
+    string nm
+    int    state  = 0      // 0 = FVG active, 1 = inversée (IFVG)
+    bool   tapped = false
+    float  tapExt = na     // mèche la plus profonde dans la FVG
+    int    tapT   = na
+    float  refExt = na     // plus haut (↑) / plus bas (↓) avant le retracement
+    float  runExt = na
+    bool   imDone = false
+    box    bx     = na
+
+type Lvl
+    float  price
+    bool   bull
+    line   ln
+    label  lb
+    bool   alive = true
+
+type RB
+    float  top
+    float  bot
+    bool   bull
+    int    tfIdx
+    box    bx
+    bool   alive = true
+
+var array<FVG>    fvgs    = array.new<FVG>()
+var array<RB>     rbs     = array.new<RB>()
+var array<Lvl>    ims     = array.new<Lvl>()
+var array<Lvl>    cisds   = array.new<Lvl>()
+var array<int>    biasArr = array.new_int(6, 0)
+var array<string> txtArr  = array.new_string(6, "—")
+
+// ═════════════════════════ OUTILS ═════════════════════════
+fmt(float x) => str.tostring(x, format.mintick)
+
+tfName(string tf) =>
+    int s = timeframe.in_seconds(tf)
+    s >= 604800 ? "W" : s >= 86400 ? "D" : s >= 3600 ? str.tostring(math.round(s / 3600)) + "H" : str.tostring(math.round(s / 60)) + "m"
+
+// Sens de la zone : FVG ↑ active ou IFVG issue d'une FVG ↓ = support (+1)
+zoneDir(FVG f) => f.state == 0 ? (f.bull ? 1 : -1) : (f.bull ? -1 : 1)
+
+addLvl(array<Lvl> arr, float p, bool bull, int t, string txt, color c, int maxN) =>
+    int x1 = na(t) ? time - 60000 : math.min(t, time - 1)
+    line  ln = line.new(x1, p, time, p, xloc = xloc.bar_time, extend = extend.right, color = c, style = line.style_dashed, width = 1)
+    label lb = label.new(time, p, txt, xloc = xloc.bar_time, style = label.style_label_left, color = color.new(color.black, 100), textcolor = c, size = size.tiny)
+    array.push(arr, Lvl.new(p, bull, ln, lb))
+    if array.size(arr) > maxN
+        Lvl o = array.shift(arr)
+        line.delete(o.ln)
+        label.delete(o.lb)
+
+// Rejection block = la mèche (de l'open au low pour ↑, de l'open au high pour ↓)
+addRB(float top, float bot, bool bull, int idx, string nm, int t) =>
+    color c = bull ? cRBBull : cRBBear
+    box b = box.new(t, top, t + 1, bot, xloc = xloc.bar_time, extend = extend.right, bgcolor = c, border_color = color.new(c, 20), border_style = line.style_dashed, text = "RB " + nm, text_size = size.tiny, text_color = chart.fg_color, text_halign = text.align_right)
+    array.push(rbs, RB.new(top, bot, bull, idx, b))
+    if array.size(rbs) > maxRB
+        RB o = array.shift(rbs)
+        box.delete(o.bx)
+
+updLvls(array<Lvl> arr) =>
+    for l in arr
+        if l.alive
+            bool broken = l.bull ? close < l.price : close > l.price
+            label.set_x(l.lb, time)
+            if broken
+                l.alive := false
+                line.set_extend(l.ln, extend.none)
+                line.set_x2(l.ln, time)
+                line.set_style(l.ln, line.style_dotted)
+                label.set_textcolor(l.lb, color.gray)
+
+trimTF(int idx) =>
+    int cnt = 0
+    for f in fvgs
+        if f.tfIdx == idx
+            cnt += 1
+    if cnt > maxPerTF
+        int n = array.size(fvgs)
+        for i = 0 to n - 1
+            FVG f = array.get(fvgs, i)
+            if f.tfIdx == idx
+                if not na(f.bx)
+                    box.delete(f.bx)
+                array.remove(fvgs, i)
+                break
+
+// Traite une bougie HTF qui vient de clôturer (h1/l1/c1 = bougie close, h3/l3 = 2 bougies avant)
+processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1, float h3, float l3, int t1, int t2, float o1) =>
+    int    evDir = 0
+    bool   rbMade = false
+    // Rejection blocks de ce TF : invalidés sur CLÔTURE au-delà de la mèche
+    for r in rbs
+        if r.alive and r.tfIdx == idx
+            if r.bull ? c1 < r.bot : c1 > r.top
+                r.alive := false
+                box.set_extend(r.bx, extend.none)
+                box.set_right(r.bx, t1)
+                box.set_bgcolor(r.bx, color.new(color.gray, 90))
+                box.set_border_color(r.bx, color.new(color.gray, 60))
+    int    evPri = 0
+    string evTxt = ""
+    int n = array.size(fvgs)
+    if n > 0
+        for i = n - 1 to 0
+            FVG f = array.get(fvgs, i)
+            if f.tfIdx == idx
+                if f.state == 0
+                    if f.bull
+                        // Intermediate low confirmé : on repasse au-dessus du plus haut d'avant le retracement
+                        if f.tapped and not f.imDone and h1 > f.refExt
+                            f.imDone := true
+                            if showIM
+                                addLvl(ims, f.tapExt, true, f.tapT, "Int. low " + nm, color.new(#089981, 0), maxLv)
+                        if c1 < f.bot   // clôture sous la FVG → IFVG baissière
+                            f.state := 1
+                            if not na(f.bx)
+                                box.set_bgcolor(f.bx, cIBear)
+                                box.set_border_color(f.bx, color.new(cIBear, 40))
+                                box.set_text(f.bx, "IFVG " + nm)
+                            if evPri < 3
+                                evDir := -1
+                                evPri := 3
+                                evTxt := "FVG↑ cassée → IFVG↓ " + fmt(f.bot)
+                        else if l1 <= f.top   // mèche dedans, pas de clôture en dessous → respectée
+                            if not f.tapped
+                                f.tapped := true
+                                f.refExt := f.runExt
+                                f.tapExt := l1
+                                f.tapT   := t1
+                            else if not f.imDone and l1 < f.tapExt
+                                f.tapExt := l1
+                                f.tapT   := t1
+                            // Rejection block ↑ : bougie HAUSSIÈRE (sens de la FVG) avec grosse mèche basse dans la FVG
+                            if showRB and not rbMade and sec >= rbMinSec and c1 > o1 and (h1 - l1) > 0 and (o1 - l1) >= rbWick * (h1 - l1)
+                                rbMade := true
+                                addRB(o1, l1, true, idx, nm, t1)
+                                if evPri < 2
+                                    evDir := 1
+                                    evPri := 2
+                                    evTxt := "Rejection block↑ " + fmt(l1) + "–" + fmt(o1)
+                            if evPri < 1
+                                evDir := 1
+                                evPri := 1
+                                evTxt := "FVG↑ respectée " + fmt(f.bot) + "–" + fmt(f.top)
+                        else if not f.tapped
+                            f.runExt := math.max(f.runExt, h1)
+                    else
+                        if f.tapped and not f.imDone and l1 < f.refExt
+                            f.imDone := true
+                            if showIM
+                                addLvl(ims, f.tapExt, false, f.tapT, "Int. high " + nm, color.new(#F23645, 0), maxLv)
+                        if c1 > f.top   // clôture au-dessus → IFVG haussière
+                            f.state := 1
+                            if not na(f.bx)
+                                box.set_bgcolor(f.bx, cIBull)
+                                box.set_border_color(f.bx, color.new(cIBull, 40))
+                                box.set_text(f.bx, "IFVG " + nm)
+                            if evPri < 3
+                                evDir := 1
+                                evPri := 3
+                                evTxt := "FVG↓ cassée → IFVG↑ " + fmt(f.top)
+                        else if h1 >= f.bot
+                            if not f.tapped
+                                f.tapped := true
+                                f.refExt := f.runExt
+                                f.tapExt := h1
+                                f.tapT   := t1
+                            else if not f.imDone and h1 > f.tapExt
+                                f.tapExt := h1
+                                f.tapT   := t1
+                            // Rejection block ↓ : bougie BAISSIÈRE (sens de la FVG) avec grosse mèche haute dans la FVG
+                            if showRB and not rbMade and sec >= rbMinSec and c1 < o1 and (h1 - l1) > 0 and (h1 - o1) >= rbWick * (h1 - l1)
+                                rbMade := true
+                                addRB(h1, o1, false, idx, nm, t1)
+                                if evPri < 2
+                                    evDir := -1
+                                    evPri := 2
+                                    evTxt := "Rejection block↓ " + fmt(o1) + "–" + fmt(h1)
+                            if evPri < 1
+                                evDir := -1
+                                evPri := 1
+                                evTxt := "FVG↓ respectée " + fmt(f.bot) + "–" + fmt(f.top)
+                        else if not f.tapped
+                            f.runExt := math.min(f.runExt, l1)
+                else
+                    if f.bull   // IFVG baissière (ancienne FVG ↑)
+                        if c1 > f.top
+                            if not na(f.bx)
+                                box.delete(f.bx)
+                            array.remove(fvgs, i)
+                        else if h1 >= f.bot and evPri < 1
+                            evDir := -1
+                            evPri := 1
+                            evTxt := "IFVG↓ respectée " + fmt(f.bot) + "–" + fmt(f.top)
+                    else        // IFVG haussière (ancienne FVG ↓)
+                        if c1 < f.bot
+                            if not na(f.bx)
+                                box.delete(f.bx)
+                            array.remove(fvgs, i)
+                        else if l1 <= f.top and evPri < 1
+                            evDir := 1
+                            evPri := 1
+                            evTxt := "IFVG↑ respectée " + fmt(f.bot) + "–" + fmt(f.top)
+    // Nouvelle FVG
+    if l1 > h3 and (l1 - h3) >= minGap
+        FVG nf = FVG.new(top = l1, bot = h3, bull = true, tfIdx = idx, sec = sec, nm = nm, runExt = h1)
+        if drawIt
+            nf.bx := box.new(t2, l1, t1, h3, xloc = xloc.bar_time, extend = extend.right, bgcolor = cBull, border_color = color.new(cBull, 40), text = "FVG " + nm, text_size = size.tiny, text_color = chart.fg_color, text_halign = text.align_right, text_valign = text.align_top)
+        array.push(fvgs, nf)
+        trimTF(idx)
+        if evPri < 2
+            evDir := 1
+            evPri := 2
+            evTxt := "Nouvelle FVG↑ " + fmt(h3) + "–" + fmt(l1)
+    else if h1 < l3 and (l3 - h1) >= minGap
+        FVG nf = FVG.new(top = l3, bot = h1, bull = false, tfIdx = idx, sec = sec, nm = nm, runExt = l1)
+        if drawIt
+            nf.bx := box.new(t2, l3, t1, h1, xloc = xloc.bar_time, extend = extend.right, bgcolor = cBear, border_color = color.new(cBear, 40), text = "FVG " + nm, text_size = size.tiny, text_color = chart.fg_color, text_halign = text.align_right, text_valign = text.align_bottom)
+        array.push(fvgs, nf)
+        trimTF(idx)
+        if evPri < 2
+            evDir := -1
+            evPri := 2
+            evTxt := "Nouvelle FVG↓ " + fmt(h1) + "–" + fmt(l3)
+    if evDir != 0
+        array.set(biasArr, idx, evDir)
+        array.set(txtArr, idx, evTxt)
+    evDir
+
+// Le balayage (plus bas/haut) touche-t-il une zone 15m+ du bon sens ?
+inZone(float p, int dir) =>
+    bool r = false
+    for f in fvgs
+        if not r and f.sec >= 900 and zoneDir(f) == dir
+            float h = f.top - f.bot
+            if dir == 1 and p <= f.top and p >= f.bot - h
+                r := true
+            if dir == -1 and p >= f.bot and p <= f.top + h
+                r := true
+    r
+
+// ═════════════════════════ DONNÉES MULTI-TIMEFRAME ═════════════════════════
+// [1] + lookahead_on = dernière bougie HTF CLÔTURÉE → aucun repaint
+chartSec = timeframe.in_seconds()
+s1 = timeframe.in_seconds(tf1)
+s2 = timeframe.in_seconds(tf2)
+s3 = timeframe.in_seconds(tf3)
+s4 = timeframe.in_seconds(tf4)
+s5 = timeframe.in_seconds(tf5)
+s6 = timeframe.in_seconds(tf6)
+v1 = s1 >= chartSec
+v2 = s2 >= chartSec
+v3 = s3 >= chartSec
+v4 = s4 >= chartSec
+v5 = s5 >= chartSec
+v6 = s6 >= chartSec
+
+[ha1, la1, ca1, hc1, lc1, tb1, ta1, oa1] = request.security(syminfo.tickerid, tf1, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+[ha2, la2, ca2, hc2, lc2, tb2, ta2, oa2] = request.security(syminfo.tickerid, tf2, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+[ha3, la3, ca3, hc3, lc3, tb3, ta3, oa3] = request.security(syminfo.tickerid, tf3, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+[ha4, la4, ca4, hc4, lc4, tb4, ta4, oa4] = request.security(syminfo.tickerid, tf4, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+[ha5, la5, ca5, hc5, lc5, tb5, ta5, oa5] = request.security(syminfo.tickerid, tf5, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+[ha6, la6, ca6, hc6, lc6, tb6, ta6, oa6] = request.security(syminfo.tickerid, tf6, [high[1], low[1], close[1], high[3], low[3], time[2], time[1], open[1]], lookahead = barmerge.lookahead_on)
+
+nb1 = v1 and not na(ta1) and nz(ta1[1]) != ta1
+nb2 = v2 and not na(ta2) and nz(ta2[1]) != ta2
+nb3 = v3 and not na(ta3) and nz(ta3[1]) != ta3
+nb4 = v4 and not na(ta4) and nz(ta4[1]) != ta4
+nb5 = v5 and not na(ta5) and nz(ta5[1]) != ta5
+nb6 = v6 and not na(ta6) and nz(ta6[1]) != ta6
+
+// Noms des TF calculés une fois (timeframe.in_seconds exige une chaîne « simple »)
+nm1 = tfName(tf1)
+nm2 = tfName(tf2)
+nm3 = tfName(tf3)
+nm4 = tfName(tf4)
+nm5 = tfName(tf5)
+nm6 = tfName(tf6)
+
+if nb1
+    processTF(0, nm1, s1, sh1, ha1, la1, ca1, hc1, lc1, ta1, tb1, oa1)
+if nb2
+    processTF(1, nm2, s2, sh2, ha2, la2, ca2, hc2, lc2, ta2, tb2, oa2)
+if nb3
+    processTF(2, nm3, s3, sh3, ha3, la3, ca3, hc3, lc3, ta3, tb3, oa3)
+if nb4
+    processTF(3, nm4, s4, sh4, ha4, la4, ca4, hc4, lc4, ta4, tb4, oa4)
+if nb5
+    processTF(4, nm5, s5, sh5, ha5, la5, ca5, hc5, lc5, ta5, tb5, oa5)
+if nb6
+    processTF(5, nm6, s6, sh6, ha6, la6, ca6, hc6, lc6, ta6, tb6, oa6)
+
+updLvls(ims)
+
+// ═════════════════════════ BIAIS GLOBAL ═════════════════════════
+wArr = array.from(w1, w2, w3, w4, w5, w6)
+vArr = array.from(v1, v2, v3, v4, v5, v6)
+float score    = 0
+float maxScore = 0
+for i = 0 to 5
+    if array.get(vArr, i)
+        score    += array.get(biasArr, i) * array.get(wArr, i)
+        maxScore += array.get(wArr, i)
+biasSign = score > 0 ? 1 : score < 0 ? -1 : 0
+
+// ═════════════════════════ SESSIONS & LIQUIDITÉ ═════════════════════════
+inS(string s) => not na(time(timeframe.period, s, "America/New_York"))
+inNY   = inS(nySess)
+inAsia = inS(asiaSess)
+inLon  = inS(lonSess)
+bgcolor(showNYbg and inNY ? color.new(color.blue, 93) : na, title = "Fenêtre NY")
+
+sessHL(bool inSess) =>
+    var float h  = na
+    var float l  = na
+    var int   t  = na
+    var bool  hT = false
+    var bool  lT = false
+    if inSess and not inSess[1]
+        h  := high
+        l  := low
+        t  := time
+        hT := false
+        lT := false
+    else if inSess
+        h := math.max(h, high)
+        l := math.min(l, low)
+    else
+        if high > h
+            hT := true
+        if low < l
+            lT := true
+    [h, l, t, hT, lT]
+
+[aH, aL, aT, aHT, aLT] = sessHL(inAsia)
+[lH, lL, lT, lHT, lLT] = sessHL(inLon)
+
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+
+var float dayH = na
+var float dayL = na
+var int   dayT = na
+var float wkH  = na
+var float wkL  = na
+var int   wkT  = na
+if timeframe.change("D") or na(dayH)
+    dayH := high
+    dayL := low
+    dayT := time
+else
+    dayH := math.max(dayH, high)
+    dayL := math.min(dayL, low)
+if timeframe.change("W") or na(wkH)
+    wkH := high
+    wkL := low
+    wkT := time
+else
+    wkH := math.max(wkH, high)
+    wkL := math.min(wkL, low)
+
+pdhT = dayH > pdh
+pdlT = dayL < pdl
+pwhT = wkH > pwh
+pwlT = wkL < pwl
+
+mkLine() => line.new(time, close, time + 1, close, xloc = xloc.bar_time, extend = extend.right, color = color.new(color.white, 100))
+mkLabel() => label.new(time, close, "", xloc = xloc.bar_time, style = label.style_label_left, color = color.new(color.black, 100), textcolor = color.new(color.white, 100), size = size.tiny)
+var array<line>  liqLn = array.from(mkLine(), mkLine(), mkLine(), mkLine(), mkLine(), mkLine(), mkLine(), mkLine())
+var array<label> liqLb = array.from(mkLabel(), mkLabel(), mkLabel(), mkLabel(), mkLabel(), mkLabel(), mkLabel(), mkLabel())
+
+// ═════════════════════════ CISD (TF du graphique) ═════════════════════════
+// CISD ↑ : après un balayage de plus bas, clôture au-dessus de l'OPEN de la
+// première bougie de la série baissière qui a fait ce plus bas. Miroir pour ↓.
+isBear  = close < open
+isBull  = close > open
+newLow  = low  <= ta.lowest(low, cisdLen)
+newHigh = high >= ta.highest(high, cisdLen)
+
+var float bearRunOpen = na
+var int   bearRunT    = na
+var float bullRunOpen = na
+var int   bullRunT    = na
+if isBear and not isBear[1]
+    bearRunOpen := open
+    bearRunT    := time
+if isBull and not isBull[1]
+    bullRunOpen := open
+    bullRunT    := time
+
+var float armUp    = na
+var int   armUpT   = na
+var float armUpExt = na
+var float armDn    = na
+var int   armDnT   = na
+var float armDnExt = na
+if newLow and not na(bearRunOpen)
+    armUp    := bearRunOpen
+    armUpT   := bearRunT
+    armUpExt := low
+if newHigh and not na(bullRunOpen)
+    armDn    := bullRunOpen
+    armDnT   := bullRunT
+    armDnExt := high
+
+var int   lastCisdDir = 0
+var int   lastCisdBar = na
+var float lastCisdPx  = na
+bool cisdUp = false
+bool cisdDn = false
+if not na(armUp) and close > armUp
+    if not cisdInZone or inZone(armUpExt, 1)
+        cisdUp := true
+        if showCISD
+            addLvl(cisds, armUp, true, armUpT, "CISD ↑", color.new(#089981, 0), 6)
+    armUp := na
+if not na(armDn) and close < armDn
+    if not cisdInZone or inZone(armDnExt, -1)
+        cisdDn := true
+        if showCISD
+            addLvl(cisds, armDn, false, armDnT, "CISD ↓", color.new(#F23645, 0), 6)
+    armDn := na
+if cisdUp
+    lastCisdDir := 1
+    lastCisdBar := bar_index
+    lastCisdPx  := close
+if cisdDn
+    lastCisdDir := -1
+    lastCisdBar := bar_index
+    lastCisdPx  := close
+updLvls(cisds)
+
+if alertOn and (inNY or not alertNYonly)
+    if cisdUp and biasSign == 1
+        alert("PBB : CISD ↑ dans le sens du biais — " + syminfo.ticker + " @ " + fmt(close), alert.freq_once_per_bar_close)
+    if cisdDn and biasSign == -1
+        alert("PBB : CISD ↓ dans le sens du biais — " + syminfo.ticker + " @ " + fmt(close), alert.freq_once_per_bar_close)
+
+// ═════════════════════════ TABLEAU DE BORD ═════════════════════════
+tPos = switch tblPos
+    "Haut gauche" => position.top_left
+    "Bas droite"  => position.bottom_right
+    "Bas gauche"  => position.bottom_left
+    => position.top_right
+tsz = switch tblSize
+    "Minuscule" => size.tiny
+    "Normal"    => size.normal
+    => size.small
+
+var table tb = table.new(tPos, 3, 20, bgcolor = color.new(chart.bg_color, 8), border_width = 1, border_color = color.new(chart.fg_color, 88), frame_width = 1, frame_color = color.new(chart.fg_color, 70))
+
+cell(int c, int r, string t, color tc, color bg) =>
+    table.cell(tb, c, r, t, text_color = tc, text_size = tsz, text_halign = text.align_left, bgcolor = bg)
+
+cGreen = color.new(#089981, 0)
+cRed   = color.new(#F23645, 0)
+cMuted = color.new(chart.fg_color, 45)
+noBg   = color.new(color.black, 100)
+hdrBg  = color.new(chart.fg_color, 90)
+
+biasTxt(int b) => b == 1 ? "▲ Haussier" : b == -1 ? "▼ Baissier" : "—"
+biasCol(int b) => b == 1 ? cGreen : b == -1 ? cRed : cMuted
+check(bool ok) => ok ? "✓" : "✗"
+
+if barstate.islast
+    // Lignes de liquidité
+    names  = array.from("PDH", "PDL", "PWH", "PWL", "Asie H", "Asie L", "Londres H", "Londres L")
+    prices = array.from(pdh, pdl, pwh, pwl, aH, aL, lH, lL)
+    takens = array.from(pdhT, pdlT, pwhT, pwlT, aHT, aLT, lHT, lLT)
+    starts = array.from(dayT, dayT, wkT, wkT, aT, aT, lT, lT)
+    for i = 0 to 7
+        line  ln = array.get(liqLn, i)
+        label lb = array.get(liqLb, i)
+        float p  = array.get(prices, i)
+        if showLiq and not na(p) and chartSec < 86400
+            bool tk = array.get(takens, i)
+            color c = tk ? color.new(color.gray, 30) : color.new(chart.fg_color, 30)
+            int x1 = na(array.get(starts, i)) ? time - 1 : math.min(array.get(starts, i), time - 1)
+            line.set_xy1(ln, x1, p)
+            line.set_xy2(ln, time, p)
+            line.set_color(ln, c)
+            line.set_style(ln, tk ? line.style_dotted : line.style_solid)
+            label.set_xy(lb, time, p)
+            label.set_text(lb, array.get(names, i) + (tk ? " ✓" : ""))
+            label.set_textcolor(lb, c)
+        else
+            line.set_color(ln, color.new(color.white, 100))
+            label.set_textcolor(lb, color.new(color.white, 100))
+
+    // DOL : liquidité non prise la plus proche au-dessus / en dessous
+    string upNm = "—"
+    float  upPx = na
+    string dnNm = "—"
+    float  dnPx = na
+    for i = 0 to 7
+        float p = array.get(prices, i)
+        if not na(p) and not array.get(takens, i)
+            if p > close and (na(upPx) or p < upPx)
+                upPx := p
+                upNm := array.get(names, i)
+            if p < close and (na(dnPx) or p > dnPx)
+                dnPx := p
+                dnNm := array.get(names, i)
+
+    // Fenêtre NY
+    int yy = year(timenow, "America/New_York")
+    int mo = month(timenow, "America/New_York")
+    int dd = dayofmonth(timenow, "America/New_York")
+    int oH = math.round(str.tonumber(str.substring(nySess, 0, 2)))
+    int oM = math.round(str.tonumber(str.substring(nySess, 2, 4)))
+    int cH = math.round(str.tonumber(str.substring(nySess, 5, 7)))
+    int cM = math.round(str.tonumber(str.substring(nySess, 7, 9)))
+    int oTs = timestamp("America/New_York", yy, mo, dd, oH, oM)
+    int cTs = timestamp("America/New_York", yy, mo, dd, cH, cM)
+    string winParis = str.format_time(oTs, "HH:mm", "Europe/Paris") + "–" + str.format_time(cTs, "HH:mm", "Europe/Paris") + " Paris"
+    int dow = dayofweek(timenow, "America/New_York")
+    string nyStatus = ""
+    if dow == dayofweek.saturday or dow == dayofweek.sunday
+        nyStatus := "week-end"
+    else if timenow < oTs
+        int mins = math.floor((oTs - timenow) / 60000)
+        nyStatus := "dans " + str.tostring(math.floor(mins / 60)) + "h" + str.format("{0,number,00}", mins % 60)
+    else if timenow < cTs
+        nyStatus := "OUVERTE — reste " + str.tostring(math.floor((cTs - timenow) / 60000)) + " min"
+    else
+        nyStatus := "terminée"
+
+    // Zone clé touchée aujourd'hui dans le sens du biais (la plus haute TF gagne)
+    string zTxt = ""
+    int    zSec = 0
+    for f in fvgs
+        if biasSign != 0 and f.sec >= 900 and zoneDir(f) == biasSign and dayL <= f.top and dayH >= f.bot and f.sec > zSec
+            zSec := f.sec
+            zTxt := (f.state == 1 ? "IFVG " : "FVG ") + f.nm + " " + fmt(f.bot) + "–" + fmt(f.top)
+
+    int bH = array.get(biasArr, 4)
+    int bD = array.get(biasArr, 5)
+    bool ok1 = biasSign != 0 and (not v5 or bH == biasSign) and (not v6 or bD == biasSign)
+    bool ok2 = zTxt != ""
+    bool ok3 = biasSign != 0 and lastCisdDir == biasSign and not na(lastCisdBar) and bar_index - lastCisdBar <= cisdRec
+    bool ok4 = inNY
+    bool ok5 = biasSign == 1 ? not na(upPx) : biasSign == -1 ? not na(dnPx) : false
+
+    // Rendu
+    cell(0, 0, "PB Blake — " + syminfo.ticker, chart.fg_color, hdrBg)
+    table.merge_cells(tb, 0, 0, 2, 0)
+    cell(0, 1, "TF", cMuted, noBg)
+    cell(1, 1, "Biais", cMuted, noBg)
+    cell(2, 1, "Dernier signal", cMuted, noBg)
+    tfs = array.from(nm1, nm2, nm3, nm4, nm5, nm6)
+    for i = 0 to 5
+        bool v = array.get(vArr, i)
+        int  b = array.get(biasArr, i)
+        cell(0, 2 + i, array.get(tfs, i), chart.fg_color, noBg)
+        cell(1, 2 + i, v ? biasTxt(b) : "n/a", v ? biasCol(b) : cMuted, noBg)
+        cell(2, 2 + i, v ? array.get(txtArr, i) : "TF < graphique", cMuted, noBg)
+    cell(0, 8, "BIAIS DU JOUR", chart.fg_color, hdrBg)
+    cell(1, 8, biasSign == 1 ? "▲ HAUSSIER" : biasSign == -1 ? "▼ BAISSIER" : "NEUTRE", biasCol(biasSign), hdrBg)
+    cell(2, 8, "score " + (score > 0 ? "+" : "") + str.tostring(score, "#") + " / " + str.tostring(maxScore, "#"), cMuted, hdrBg)
+    cell(0, 9, "DOL ↑", cGreen, noBg)
+    cell(1, 9, upNm, chart.fg_color, noBg)
+    cell(2, 9, na(upPx) ? "—" : fmt(upPx) + "  (+" + str.tostring(upPx - close, "#.##") + " pts)", cMuted, noBg)
+    cell(0, 10, "DOL ↓", cRed, noBg)
+    cell(1, 10, dnNm, chart.fg_color, noBg)
+    cell(2, 10, na(dnPx) ? "—" : fmt(dnPx) + "  (−" + str.tostring(close - dnPx, "#.##") + " pts)", cMuted, noBg)
+    cell(0, 11, "Fenêtre NY", chart.fg_color, noBg)
+    cell(1, 11, winParis, chart.fg_color, noBg)
+    cell(2, 11, nyStatus, inNY ? cGreen : cMuted, noBg)
+    cell(0, 12, "CHECKLIST", chart.fg_color, hdrBg)
+    table.merge_cells(tb, 0, 12, 2, 12)
+    cell(0, 13, "1  Biais HTF aligné", chart.fg_color, noBg)
+    cell(1, 13, check(ok1), ok1 ? cGreen : cRed, noBg)
+    cell(2, 13, "4H " + biasTxt(bH) + "  ·  D " + biasTxt(bD), cMuted, noBg)
+    cell(0, 14, "2  Zone clé touchée", chart.fg_color, noBg)
+    cell(1, 14, check(ok2), ok2 ? cGreen : cRed, noBg)
+    cell(2, 14, ok2 ? zTxt : "pas encore", cMuted, noBg)
+    cell(0, 15, "3  Confirmation CISD", chart.fg_color, noBg)
+    cell(1, 15, check(ok3), ok3 ? cGreen : cRed, noBg)
+    cell(2, 15, na(lastCisdBar) ? "—" : (lastCisdDir == 1 ? "↑ " : "↓ ") + "il y a " + str.tostring(bar_index - lastCisdBar) + " bougies", cMuted, noBg)
+    cell(0, 16, "4  Dans la fenêtre NY", chart.fg_color, noBg)
+    cell(1, 16, check(ok4), ok4 ? cGreen : cRed, noBg)
+    cell(2, 16, nyStatus, cMuted, noBg)
+    cell(0, 17, "5  Cible (DOL) claire", chart.fg_color, noBg)
+    cell(1, 17, check(ok5), ok5 ? cGreen : cRed, noBg)
+    cell(2, 17, biasSign == 1 ? upNm : biasSign == -1 ? dnNm : "—", cMuted, noBg)
