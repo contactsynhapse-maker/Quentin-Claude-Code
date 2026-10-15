@@ -659,10 +659,10 @@ if barstate.islast
 
     int bH = array.get(biasArr, 4)
     int bD = array.get(biasArr, 5)
-    bool cH  = array.get(chopArr, 4)
-    bool cD  = array.get(chopArr, 5)
+    bool rng4H  = array.get(chopArr, 4)
+    bool rngD  = array.get(chopArr, 5)
     bool ok0 = not isRange
-    bool ok1 = biasSign != 0 and (not v5 or (bH == biasSign and not cH)) and (not v6 or (bD == biasSign and not cD))
+    bool ok1 = biasSign != 0 and (not v5 or (bH == biasSign and not rng4H)) and (not v6 or (bD == biasSign and not rngD))
     bool ok2 = zTxt != ""
     bool ok3 = biasSign != 0 and lastCisdDir == biasSign and not na(lastCisdBar) and bar_index - lastCisdBar <= cisdRec
     bool ok4 = inNY
@@ -705,7 +705,7 @@ if barstate.islast
     cell(2, 14, ok0 ? "ok" : "range / choppy — on ne trade pas", cMuted, noBg)
     cell(0, 15, "2  Biais HTF aligné", chart.fg_color, noBg)
     cell(1, 15, check(ok1), ok1 ? cGreen : cRed, noBg)
-    cell(2, 15, "4H " + (cH ? "↔ Range" : biasTxt(bH)) + "  ·  D " + (cD ? "↔ Range" : biasTxt(bD)), cMuted, noBg)
+    cell(2, 15, "4H " + (rng4H ? "↔ Range" : biasTxt(bH)) + "  ·  D " + (rngD ? "↔ Range" : biasTxt(bD)), cMuted, noBg)
     cell(0, 16, "3  Zone clé touchée", chart.fg_color, noBg)
     cell(1, 16, check(ok2), ok2 ? cGreen : cRed, noBg)
     cell(2, 16, ok2 ? zTxt : "pas encore", cMuted, noBg)
