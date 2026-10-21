@@ -82,7 +82,7 @@ type FVG
     int    state  = 0      // 0 = FVG active, 1 = inversée (IFVG)
     bool   tapped = false
     float  tapExt = na     // mèche la plus profonde dans la FVG
-    int    tapT   = na
+    int    tapT   = na     // n° de la bougie (graphique) de cette mèche
     float  refExt = na     // plus haut (↑) / plus bas (↓) avant le retracement
     float  runExt = na
     bool   imDone = false
@@ -117,6 +117,19 @@ var array<int>    biasArr = array.new_int(6, 0)
 var array<string> txtArr  = array.new_string(6, "—")
 var array<Hist>   hists   = array.from(Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()), Hist.new(array.new_int(), array.new_int()))
 
+// Ligne qui s'allonge bougie après bougie jusqu'à sa longueur finale
+type Tag
+    line  ln
+    label lb
+    int   x1
+    int   tgt
+
+var array<Tag> grow = array.new<Tag>()
+// N° de bougie (graphique) du début des 3 dernières bougies de chaque TF : [0] = en cours, [1] = clôturée, [2] = celle d'avant
+var array<int> ix0 = array.new_int(6, na)
+var array<int> ix1 = array.new_int(6, na)
+var array<int> ix2 = array.new_int(6, na)
+
 // ═════════════════════════ OUTILS ═════════════════════════
 // Nom court sur le graphique : « 5m », « 1h », « D »
 tfName(string tf) =>
@@ -131,11 +144,34 @@ tblName(string tf) =>
 // Sens de la zone : FVG ↑ active ou IFVG issue d'une FVG ↓ = support (+1)
 zoneDir(FVG f) => f.state == 0 ? (f.bull ? 1 : -1) : (f.bull ? -1 : 1)
 
-// Ligne fine + texte centré dessus (fond du texte = fond du graphique → la ligne paraît coupée)
-mkTag(int x1, float p, int durMs, string txt) =>
-    line  ln = line.new(x1, p, x1 + durMs, p, xloc = xloc.bar_time, color = txtCol, width = 1)
-    label lb = label.new(x1 + int(durMs / 2), p, txt, xloc = xloc.bar_time, style = label.style_label_center, color = chart.bg_color, textcolor = txtCol, size = size.small)
+// Ligne fine + texte centré dessus (fond du texte = fond du graphique → la ligne paraît coupée).
+// Accrochée aux n° de bougies (xloc.bar_index) → elle suit le graphique quand on le déplace.
+mkTag(int x0, float p, int lenB, string txt) =>
+    int x1  = math.max(x0, bar_index - 9000)
+    int tgt = x1 + math.max(lenB, 1)
+    int x2  = math.min(tgt, bar_index)
+    line  ln = line.new(x1, p, x2, p, xloc = xloc.bar_index, color = txtCol, width = 1)
+    label lb = label.new(x1 + int((x2 - x1) / 2), p, txt, xloc = xloc.bar_index, style = label.style_label_center, color = chart.bg_color, textcolor = txtCol, size = size.small)
+    if x2 < tgt
+        array.push(grow, Tag.new(ln, lb, x1, tgt))
     [ln, lb]
+
+growTags() =>
+    int n = array.size(grow)
+    if n > 0
+        for i = n - 1 to 0
+            Tag g = array.get(grow, i)
+            int nx = math.min(g.tgt, bar_index)
+            line.set_x2(g.ln, nx)
+            label.set_x(g.lb, g.x1 + int((nx - g.x1) / 2))
+            if nx >= g.tgt
+                array.remove(grow, i)
+
+// Nouvelle bougie du TF k : on décale les n° de bougies de début
+idxShift(int k) =>
+    array.set(ix2, k, array.get(ix1, k))
+    array.set(ix1, k, array.get(ix0, k))
+    array.set(ix0, k, bar_index)
 
 // Prix de la ligne d'une FVG. « Début » = bord d'où part le gap (bas d'une FVG ↑, haut d'une FVG ↓)
 fvgPx(bool bull, float top, float bot) =>
@@ -147,8 +183,8 @@ hideFVG(FVG f) =>
     f.ln := na
     f.lb := na
 
-addLvl(array<Lvl> arr, float p, bool bull, int t, int durMs, string txt, int maxN) =>
-    [ln, lb] = mkTag(t, p, durMs, txt)
+addLvl(array<Lvl> arr, float p, bool bull, int t, int lenB, string txt, int maxN) =>
+    [ln, lb] = mkTag(t, p, lenB, txt)
     array.push(arr, Lvl.new(p, bull, ln, lb))
     if array.size(arr) > maxN
         Lvl o = array.shift(arr)
@@ -167,8 +203,8 @@ updLvls(array<Lvl> arr) =>
                 array.remove(arr, i)
 
 // Rejection block = la mèche (de l'open au low pour ↑, de l'open au high pour ↓) ; ligne à l'open
-addRB(float lvl, float inv, bool bull, int idx, string nm, int t, int durMs) =>
-    [ln, lb] = mkTag(t, lvl, durMs, nm + " rb")
+addRB(float lvl, float inv, bool bull, int idx, string nm, int t, int lenB) =>
+    [ln, lb] = mkTag(t, lvl, lenB, nm + " rb")
     array.push(rbs, RB.new(inv, bull, idx, ln, lb))
     if array.size(rbs) > 6
         RB o = array.shift(rbs)
@@ -190,21 +226,22 @@ trimTF(int idx) =>
                 break
 
 // FVG cassée → IFVG (tracée seulement si « IFVG » est coché)
-toIFVG(FVG f, int t, int durMs) =>
+toIFVG(FVG f, int t, int lenB) =>
     hideFVG(f)
     if showIFVG
-        [ln, lb] = mkTag(t, fvgPx(f.bull, f.top, f.bot), durMs, f.nm + " ifvg")
+        [ln, lb] = mkTag(t, fvgPx(f.bull, f.top, f.bot), lenB, f.nm + " ifvg")
         f.ln := ln
         f.lb := lb
     f.state := 1
 
 // Traite une bougie HTF qui vient de clôturer (h1/l1/c1 = bougie close, h3/l3 = 2 bougies avant)
 processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1, float h3, float l3, int t1, int t2, float o1) =>
+    // t1 / t2 = n° de bougie (graphique) du début de la bougie close / de celle d'avant
     int    evDir  = 0
     int    evPri  = 0
     string evTxt  = ""
     bool   rbMade = false
-    int    durMs  = lnLen * sec * 1000
+    int    lenB   = math.max(1, int(math.round(lnLen * sec / timeframe.in_seconds())))
     int nr = array.size(rbs)
     if nr > 0
         for i = nr - 1 to 0
@@ -226,9 +263,9 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
                             f.imDone := true
                             hideFVG(f)
                             if showIM and f.draw
-                                addLvl(ims, f.tapExt, true, f.tapT, durMs, nm + " ITL", maxLv)
+                                addLvl(ims, f.tapExt, true, f.tapT, lenB, nm + " ITL", maxLv)
                         if c1 < f.bot   // clôture sous la FVG → IFVG baissière
-                            toIFVG(f, t1, durMs)
+                            toIFVG(f, t1, lenB)
                             if evPri < 3
                                 evDir := -1
                                 evPri := 3
@@ -246,7 +283,7 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
                             if not rbMade and sec >= rbMinSec and c1 > o1 and (h1 - l1) > 0 and (o1 - l1) >= rbWick * (h1 - l1)
                                 rbMade := true
                                 if showRB and f.draw
-                                    addRB(o1, l1, true, idx, nm, t1, durMs)
+                                    addRB(o1, l1, true, idx, nm, t1, lenB)
                                 if evPri < 2
                                     evDir := 1
                                     evPri := 2
@@ -262,9 +299,9 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
                             f.imDone := true
                             hideFVG(f)
                             if showIM and f.draw
-                                addLvl(ims, f.tapExt, false, f.tapT, durMs, nm + " ITH", maxLv)
+                                addLvl(ims, f.tapExt, false, f.tapT, lenB, nm + " ITH", maxLv)
                         if c1 > f.top   // clôture au-dessus → IFVG haussière
-                            toIFVG(f, t1, durMs)
+                            toIFVG(f, t1, lenB)
                             if evPri < 3
                                 evDir := 1
                                 evPri := 3
@@ -282,7 +319,7 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
                             if not rbMade and sec >= rbMinSec and c1 < o1 and (h1 - l1) > 0 and (h1 - o1) >= rbWick * (h1 - l1)
                                 rbMade := true
                                 if showRB and f.draw
-                                    addRB(o1, h1, false, idx, nm, t1, durMs)
+                                    addRB(o1, h1, false, idx, nm, t1, lenB)
                                 if evPri < 2
                                     evDir := -1
                                     evPri := 2
@@ -314,7 +351,7 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
     if l1 > h3 and (l1 - h3) >= minGap
         FVG nf = FVG.new(top = l1, bot = h3, bull = true, tfIdx = idx, sec = sec, nm = nm, draw = drawIt, runExt = h1)
         if showFVG and drawIt
-            [ln, lb] = mkTag(t2, fvgPx(true, l1, h3), durMs, nm + " fvg")
+            [ln, lb] = mkTag(t2, fvgPx(true, l1, h3), lenB, nm + " fvg")
             nf.ln := ln
             nf.lb := lb
         array.push(fvgs, nf)
@@ -326,7 +363,7 @@ processTF(int idx, string nm, int sec, bool drawIt, float h1, float l1, float c1
     else if h1 < l3 and (l3 - h1) >= minGap
         FVG nf = FVG.new(top = l3, bot = h1, bull = false, tfIdx = idx, sec = sec, nm = nm, draw = drawIt, runExt = l1)
         if showFVG and drawIt
-            [ln, lb] = mkTag(t2, fvgPx(false, l3, h1), durMs, nm + " fvg")
+            [ln, lb] = mkTag(t2, fvgPx(false, l3, h1), lenB, nm + " fvg")
             nf.ln := ln
             nf.lb := lb
         array.push(fvgs, nf)
@@ -421,17 +458,23 @@ nm5 = tfName(tf5)
 nm6 = tfName(tf6)
 
 if nb1
-    processTF(0, nm1, s1, dr1, ha1, la1, ca1, hc1, lc1, ta1, tb1, oa1)
+    idxShift(0)
+    processTF(0, nm1, s1, dr1, ha1, la1, ca1, hc1, lc1, nz(array.get(ix1, 0), bar_index), nz(array.get(ix2, 0), bar_index), oa1)
 if nb2
-    processTF(1, nm2, s2, dr2, ha2, la2, ca2, hc2, lc2, ta2, tb2, oa2)
+    idxShift(1)
+    processTF(1, nm2, s2, dr2, ha2, la2, ca2, hc2, lc2, nz(array.get(ix1, 1), bar_index), nz(array.get(ix2, 1), bar_index), oa2)
 if nb3
-    processTF(2, nm3, s3, dr3, ha3, la3, ca3, hc3, lc3, ta3, tb3, oa3)
+    idxShift(2)
+    processTF(2, nm3, s3, dr3, ha3, la3, ca3, hc3, lc3, nz(array.get(ix1, 2), bar_index), nz(array.get(ix2, 2), bar_index), oa3)
 if nb4
-    processTF(3, nm4, s4, dr4, ha4, la4, ca4, hc4, lc4, ta4, tb4, oa4)
+    idxShift(3)
+    processTF(3, nm4, s4, dr4, ha4, la4, ca4, hc4, lc4, nz(array.get(ix1, 3), bar_index), nz(array.get(ix2, 3), bar_index), oa4)
 if nb5
-    processTF(4, nm5, s5, dr5, ha5, la5, ca5, hc5, lc5, ta5, tb5, oa5)
+    idxShift(4)
+    processTF(4, nm5, s5, dr5, ha5, la5, ca5, hc5, lc5, nz(array.get(ix1, 4), bar_index), nz(array.get(ix2, 4), bar_index), oa5)
 if nb6
-    processTF(5, nm6, s6, dr6, ha6, la6, ca6, hc6, lc6, ta6, tb6, oa6)
+    idxShift(5)
+    processTF(5, nm6, s6, dr6, ha6, la6, ca6, hc6, lc6, nz(array.get(ix1, 5), bar_index), nz(array.get(ix2, 5), bar_index), oa6)
 
 updLvls(ims)
 
@@ -550,10 +593,10 @@ var float bullRunOpen = na
 var int   bullRunT    = na
 if isBear and not isBear[1]
     bearRunOpen := open
-    bearRunT    := time
+    bearRunT    := bar_index
 if isBull and not isBull[1]
     bullRunOpen := open
-    bullRunT    := time
+    bullRunT    := bar_index
 
 var float armUp    = na
 var int   armUpT   = na
@@ -570,22 +613,22 @@ if newHigh and not na(bullRunOpen)
     armDnT   := bullRunT
     armDnExt := high
 
-int cisdMs = lnLen * chartSec * 1000
 bool cisdUp = false
 bool cisdDn = false
 if not na(armUp) and close > armUp
     if not cisdInZone or inZone(armUpExt, 1)
         cisdUp := true
         if showCISD
-            addLvl(cisds, armUp, true, armUpT, cisdMs, "cisd", 4)
+            addLvl(cisds, armUp, true, armUpT, lnLen, "cisd", 4)
     armUp := na
 if not na(armDn) and close < armDn
     if not cisdInZone or inZone(armDnExt, -1)
         cisdDn := true
         if showCISD
-            addLvl(cisds, armDn, false, armDnT, cisdMs, "cisd", 4)
+            addLvl(cisds, armDn, false, armDnT, lnLen, "cisd", 4)
     armDn := na
 updLvls(cisds)
+growTags()
 
 if alertOn and (inNY or not alertNYonly)
     if cisdUp and biasSign == 1
