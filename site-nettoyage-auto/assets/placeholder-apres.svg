@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <g fill="none" stroke="#bfdbfe" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M190 360l40-90a40 40 0 0 1 36-24h268a40 40 0 0 1 36 24l40 90"/>
+    <rect x="150" y="360" width="500" height="90" rx="24"/>
+    <circle cx="250" cy="455" r="34"/><circle cx="550" cy="455" r="34"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="5" stroke-linecap="round"><path d="M600 230v30M585 245h30"/><path d="M215 300v20M205 310h20"/></g>
+  <text x="600" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="34" font-weight="700" fill="#ffffff">PHOTO APRÈS</text>
+  <text x="600" y="218" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#bfdbfe">à fournir</text>
+</svg>

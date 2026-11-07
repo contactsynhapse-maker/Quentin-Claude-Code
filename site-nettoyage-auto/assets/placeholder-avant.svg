@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b4a3a"/><stop offset="1" stop-color="#3a2f25"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <g fill="none" stroke="#8c7660" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
+    <path d="M190 360l40-90a40 40 0 0 1 36-24h268a40 40 0 0 1 36 24l40 90"/>
+    <rect x="150" y="360" width="500" height="90" rx="24"/>
+    <circle cx="250" cy="455" r="34"/><circle cx="550" cy="455" r="34"/>
+  </g>
+  <g fill="#7a6450" opacity=".55"><circle cx="260" cy="300" r="14"/><circle cx="470" cy="390" r="20"/><circle cx="560" cy="300" r="10"/><circle cx="350" cy="410" r="12"/></g>
+  <text x="200" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="34" font-weight="700" fill="#e7dccf">PHOTO AVANT</text>
+  <text x="200" y="218" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#c9b8a5">à fournir</text>
+</svg>
