@@ -241,8 +241,10 @@ button, input, textarea { font: inherit; }
 .pricing__cta { margin-top: 32px; text-align: center; }
 
 /* ---------- Avant / Après ---------- */
-.gallery { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.gallery figure { margin: 0; }
+/* Les photos d'une même rangée ont la même hauteur (largeur proportionnelle au format) */
+.gallery { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.gallery figure { margin: 0; flex: var(--r, 1) 1 0; min-width: 260px; }
+@media (max-width: 700px) { .gallery { display: grid; grid-template-columns: 1fr; } .gallery figure { min-width: 0; } }
 .gallery figcaption { margin-top: 12px; font-weight: 600; text-align: center; }
 .ba {
   --pos: 50%; position: relative; aspect-ratio: 4 / 3; border-radius: var(--radius); overflow: hidden;

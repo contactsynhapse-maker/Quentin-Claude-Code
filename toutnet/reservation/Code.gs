@@ -56,10 +56,19 @@ var REGLAGES_DEFAUT = [
 var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"]];
 var FORMULES = [["formule-1", "Formule 1 — Aspiration à sec"], ["formule-2", "Formule 2 — Nettoyage complet par extraction"]];
 var OPTIONS = [["poils-animaux", "Poils d'animaux"]];
-// Durées PROVISOIRES (minutes) — à ajuster par Quentin dans l'onglet « Durées ».
-var DUREE_DEFAUT = { "formule-1": 60, "formule-2": 120 };
-var DUREE_GRAND_VEHICULE = { "7-places": 30, "camion": 30, "utilitaire": 30 };
-var DUREE_OPTION_DEFAUT = 15;
+var ETATS = [["peu-sale", "Peu sale"], ["sale", "Sale"], ["tres-sale", "Très sale"]];
+// Durées de départ (minutes), d'après Quentin : citadine et break/SUV 2 h (formule 1)
+// et 3 h (formule 2), utilitaire 3 h minimum. Les lignes « À CONFIRMER » sont provisoires.
+// Ajustables ensuite dans l'onglet « Durées », sans toucher au code.
+var DUREES_DEFAUT = {
+  "citadine|formule-1": 120, "citadine|formule-2": 180,
+  "break-suv|formule-1": 120, "break-suv|formule-2": 180,
+  "7-places|formule-1": 120, "7-places|formule-2": 180,       // À CONFIRMER
+  "camion|formule-1": 180, "camion|formule-2": 180,           // À CONFIRMER
+  "utilitaire|formule-1": 180, "utilitaire|formule-2": 180,
+  "option|poils-animaux": 0,                                   // À CONFIRMER
+  "etat|peu-sale": 0, "etat|sale": 0, "etat|tres-sale": 30,   // À CONFIRMER
+};
 
 /* =====================================================================
    POINTS D'ENTRÉE WEB
@@ -359,12 +368,11 @@ function installer() {
     dur.appendRow(["Clé (ne pas modifier)", "Description", "Minutes"]);
     dur.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#ffd21f");
     VEHICULES.forEach(function (v) {
-      FORMULES.forEach(function (f) {
-        dur.appendRow([v[0] + "|" + f[0], v[1] + " · " + f[1], DUREE_DEFAUT[f[0]] + (DUREE_GRAND_VEHICULE[v[0]] || 0)]);
-      });
+      FORMULES.forEach(function (f) { var k = v[0] + "|" + f[0]; dur.appendRow([k, v[1] + " · " + f[1], DUREES_DEFAUT[k]]); });
     });
-    OPTIONS.forEach(function (o) { dur.appendRow(["option|" + o[0], "Option : " + o[1] + " (temps en plus)", DUREE_OPTION_DEFAUT]); });
-    dur.getRange("E1").setValue("⚠ Durées PROVISOIRES : Quentin, ajuste la colonne « Minutes » selon ton expérience.").setFontWeight("bold").setFontColor("#d92d20");
+    OPTIONS.forEach(function (o) { var k = "option|" + o[0]; dur.appendRow([k, "Option : " + o[1] + " (temps en plus)", DUREES_DEFAUT[k] || 0]); });
+    ETATS.forEach(function (e) { var k = "etat|" + e[0]; dur.appendRow([k, "État : " + e[1] + " (temps en plus)", DUREES_DEFAUT[k] || 0]); });
+    dur.getRange("E1").setValue("Quentin : ajuste la colonne « Minutes » si besoin (7 places, camion, options et états sont provisoires).").setFontWeight("bold").setFontColor("#d92d20");
     dur.setFrozenRows(1);
     dur.autoResizeColumns(1, 3);
   }
@@ -414,6 +422,7 @@ function dureeTotale(vehicules, D) {
     if (typeof d !== "number" || isNaN(d)) throw new Error("Durée inconnue pour " + v.type + " / " + v.formule + " (onglet Durées).");
     total += d;
     (v.options || []).forEach(function (o) { total += D["option|" + o] || 0; });
+    if (v.niveau) total += D["etat|" + v.niveau] || 0;
   });
   return total;
 }

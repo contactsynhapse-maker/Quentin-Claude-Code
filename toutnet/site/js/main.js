@@ -94,32 +94,37 @@
   }
 
   /* ---------- Estimation de prix ----------
-     Règles issues du flyer :
-       - fourchette de prix selon le type de véhicule ;
-       - + prix des options cochées (ex. poils d'animaux +15 €) ;
-       - remise « pack » selon le nombre de véhicules de la réservation.
-     Frais de déplacement : non définis (config.reservation.deplacement).  */
+     Règle (modifiable dans config.js, rubrique « ESTIMATION ») :
+       prix véhicule = prixMin + (prixMax − prixMin) × (poids formule + poids état)
+                       + options, arrondi à `arrondiPrix` €
+       puis remise pack (seulement les packs avec `appliquer: true`).
+     Un véhicule dont la formule ou l'état n'est pas encore choisi est
+     compté « à partir de ». Aucun frais de déplacement n'est affiché.   */
   function estimer(vehicules) {
-    var lignes = [], min = 0, max = 0, n = 0;
+    var lignes = [], total = 0, n = 0, partiel = false;
+    var arr = C.arrondiPrix || 1;
+    var niveaux = C.niveaux || [];
     vehicules.forEach(function (v, i) {
       var type = byId(C.vehicules, v.type);
       if (!type) return;
       n++;
-      var oMin = 0;
-      (v.options || []).forEach(function (id) { var o = byId(C.options, id); if (o && o.prix) oMin += o.prix; });
-      var lMin = type.prixMin + oMin, lMax = type.prixMax + oMin;
-      min += lMin; max += lMax;
-      lignes.push({ index: i, label: "Véhicule " + (i + 1) + " · " + type.nom, min: lMin, max: lMax });
+      var f = byId(C.formules, v.formule), e = byId(niveaux, v.niveau);
+      var incomplet = !f || (niveaux.length && !e);
+      if (incomplet) partiel = true;
+      var poids = Math.min(1, Math.max(0, (f && f.poids || 0) + (e && e.poids || 0)));
+      var prix = Math.round((type.prixMin + (type.prixMax - type.prixMin) * poids) / arr) * arr;
+      (v.options || []).forEach(function (id) { var o = byId(C.options, id); if (o && o.prix) prix += o.prix; });
+      total += prix;
+      lignes.push({ index: i, label: "Véhicule " + (i + 1) + " · " + type.nom, prix: prix, partiel: incomplet });
     });
     var pack = null;
     (C.packs || []).forEach(function (p) {
-      if (n >= p.min && (!p.max || n <= p.max)) pack = p;
+      if (p.appliquer !== false && n >= p.min && (!p.max || n <= p.max)) pack = p;
     });
-    var r = pack ? (1 - pack.remise / 100) : 1;
-    return { lignes: lignes, nb: n, sousTotal: { min: min, max: max }, pack: pack,
-      remise: pack ? { min: min - min * r, max: max - max * r } : null,
-      total: { min: Math.round(min * r), max: Math.round(max * r) } };
+    var remise = pack ? Math.round(total * pack.remise / 100) : 0;
+    return { lignes: lignes, nb: n, sousTotal: total, pack: pack, remise: remise, total: total - remise, partiel: partiel };
   }
+  function prixTexte(e) { return (e.partiel ? "à partir de " : "") + euros(e.total); }
 
   /* ---------- Rendu des sections ---------- */
   function renderIdentity() {
@@ -250,8 +255,16 @@
         el("input", { class: "ba__range", type: "range", min: "0", max: "100", value: "50", step: "0.1", "aria-label": "Comparer avant et après — " + name }),
         el("span", { class: "ba__handle", "aria-hidden": "true" }),
       ]);
+      var imgA = ba.querySelector(".ba__after");
+      var ratio = function () {
+        if (!imgA.naturalWidth) return;
+        ba.style.aspectRatio = imgA.naturalWidth + " / " + imgA.naturalHeight;
+        if (ba.parentNode) ba.parentNode.style.setProperty("--r", (imgA.naturalWidth / imgA.naturalHeight).toFixed(3));
+      };
+      if (imgA.complete) ratio(); else imgA.addEventListener("load", ratio);
       initSlider(ba);
       box.appendChild(el("figure", null, [ba, el("figcaption", { class: titre ? "" : "tbd tbd-muted", text: titre || "Photos à venir" })]));
+      ratio();
     });
   }
 
@@ -320,7 +333,7 @@
 
   window.Site = {
     config: C, el: el, filled: filled, icons: ICONS, icon: icon, byId: byId,
-    euros: euros, fourchette: fourchette, estimer: estimer,
+    euros: euros, fourchette: fourchette, estimer: estimer, prixTexte: prixTexte,
     contactLinks: contactLinks, linkButton: linkButton,
   };
 })();

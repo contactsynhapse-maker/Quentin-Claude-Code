@@ -38,7 +38,7 @@
     step: 1,
     vehicules: [nouveauVehicule()],
     actif: 0,
-    durees: null,                                     // durées (minutes) fournies par l'API
+    durees: R.durees || null,                         // durées (minutes) : config, puis API si installée
     dispo: { cle: null, loading: false, erreur: false, data: null },
     jour: null, heure: null,                          // créneau choisi (mode API)
     modeDemande: !API,                                // true = pas de réservation automatique
@@ -49,7 +49,7 @@
   function vehiculeComplet(v) { return !!(v.type && v.formule && (!NIVEAUX.length || v.niveau)); }
   function signature() {
     return state.vehicules.filter(vehiculeComplet).map(function (v) {
-      return { type: v.type, formule: v.formule, options: v.options.slice() };
+      return { type: v.type, formule: v.formule, niveau: v.niveau || "", options: v.options.slice() };
     });
   }
   function dureeLocale() {
@@ -59,6 +59,7 @@
       var d = state.durees[v.type + "|" + v.formule];
       if (typeof d !== "number") ok = false; else total += d;
       v.options.forEach(function (o) { total += state.durees["option|" + o] || 0; });
+      if (v.niveau) total += state.durees["etat|" + v.niveau] || 0;
     });
     return ok && total ? total : null;
   }
@@ -151,17 +152,17 @@
     estimateBox.textContent = "";
     estimateBox.className = "estimate" + (e.nb ? "" : " estimate--empty");
     var top = el("div", { class: "estimate__top" }, [
-      el("span", { class: "estimate__label", text: "Estimation" }),
-      el("span", { class: "estimate__total", text: e.nb ? Site.fourchette(e.total.min, e.total.max) : "Choisissez un type de véhicule" }),
+      el("span", { class: "estimate__label", text: "Prix estimé" }),
+      el("span", { class: "estimate__total", text: e.nb ? Site.prixTexte(e) : "Choisissez un type de véhicule" }),
     ]);
     estimateBox.appendChild(top);
     if (!e.nb) return;
     var lines = el("ul", { class: "estimate__lines" });
-    e.lignes.forEach(function (l) { lines.appendChild(el("li", null, [el("span", { text: l.label }), el("span", { text: Site.fourchette(l.min, l.max) })])); });
+    e.lignes.forEach(function (l) { lines.appendChild(el("li", null, [el("span", { text: l.label }), el("span", { text: (l.partiel ? "dès " : "") + Site.euros(l.prix) })])); });
     if (e.pack) {
       lines.appendChild(el("li", { class: "is-discount" }, [
         el("span", { text: "Pack " + e.pack.nom + " −" + e.pack.remise + " %" }),
-        el("span", { text: "− " + Site.fourchette(e.remise.min, e.remise.max) }),
+        el("span", { text: "− " + Site.euros(e.remise) }),
       ]));
     }
     var d = dureeLocale();
@@ -410,7 +411,7 @@
   }
   function texteEstimation() {
     var e = Site.estimer(state.vehicules);
-    return Site.fourchette(e.total.min, e.total.max) + (e.pack ? " (pack " + e.pack.nom + " −" + e.pack.remise + " % inclus)" : "");
+    return Site.prixTexte(e) + (e.pack ? " (pack " + e.pack.nom + " −" + e.pack.remise + " % inclus)" : "");
   }
   function adresse() { return val("rue") + ", " + val("cp") + " " + val("ville"); }
 
@@ -449,7 +450,7 @@
       lines.push("• " + d.titre);
       lines.push("  " + d.formule + (d.niveau ? " · " + d.niveau : "") + (d.options.length ? " · Options : " + d.options.join(", ") : ""));
     });
-    lines.push("", "Estimation : " + texteEstimation());
+    lines.push("", "Prix estimé : " + texteEstimation());
     lines.push("Adresse : " + adresse());
     lines.push(texteCreneau().charAt(0).toUpperCase() + texteCreneau().slice(1));
     lines.push("", "Nom : " + val("prenom") + " " + val("nom"), "Téléphone : " + val("telephone"), "E-mail : " + val("email"));
@@ -521,7 +522,7 @@
       creneau: { date: state.jour, heure: state.heure },
       client: { prenom: val("prenom"), nom: val("nom"), telephone: val("telephone"), email: val("email") },
       remarques: val("remarques"),
-      estimation: { min: e.total.min, max: e.total.max, pack: e.pack ? e.pack.nom + " −" + e.pack.remise + " %" : "", texte: texteEstimation() },
+      estimation: { prix: e.total, pack: e.pack ? e.pack.nom + " −" + e.pack.remise + " %" : "", texte: texteEstimation() },
       website: val("website"),
     };
 
