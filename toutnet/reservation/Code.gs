@@ -44,7 +44,9 @@ var REGLAGES_DEFAUT = [
   ["agenda_disponibilites", "", "Rempli automatiquement par l'installation."],
   ["agenda_rendezvous", "", "Rempli automatiquement par l'installation."],
   ["bloquer_agenda_principal", "non", "oui = les événements de l'agenda Google principal bloquent aussi les créneaux."],
-  ["battement_minutes", 30, "Temps libre minimum entre deux rendez-vous (trajet). À AJUSTER."],
+  ["battement_minutes", 30, "Temps libre minimum entre deux rendez-vous. À AJUSTER."],
+  ["trajet_auto", "oui", "oui = le temps de trajet réel (Google Maps) entre deux rendez-vous est ajouté automatiquement."],
+  ["marge_trajet_minutes", 10, "Minutes ajoutées au temps de trajet (stationnement, installation)."],
   ["pas_minutes", 30, "Écart entre deux heures de début proposées (30 = 9h00, 9h30, 10h00…)."],
   ["delai_minimum_heures", 24, "Délai minimum entre la réservation et le rendez-vous."],
   ["horizon_jours", 45, "Nombre de jours à l'avance où l'on peut réserver."],
@@ -53,12 +55,12 @@ var REGLAGES_DEFAUT = [
 ];
 
 // Doivent correspondre aux identifiants `id` de js/config.js du site.
-var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"]];
+var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"], ["commercial", "Véhicule commercial"]];
 var FORMULES = [["formule-1", "Formule 1 — Aspiration à sec"], ["formule-2", "Formule 2 — Nettoyage complet par extraction"]];
-var OPTIONS = [["poils-animaux", "Poils d'animaux"]];
-var ETATS = [["peu-sale", "Peu sale"], ["sale", "Sale"], ["tres-sale", "Très sale"]];
+var OPTIONS = [["vehicule-sale", "Véhicule sale"], ["vehicule-tres-sale", "Véhicule très sale"], ["poils-animaux", "Poils d'animaux"]];
 // Durées de départ (minutes), d'après Quentin : citadine et break/SUV 2 h (formule 1)
-// et 3 h (formule 2), utilitaire 3 h minimum. Les lignes « À CONFIRMER » sont provisoires.
+// et 3 h (formule 2), utilitaire 3 h minimum, véhicule commercial 1 h 30 à 2 h.
+// Les lignes « À CONFIRMER » sont provisoires.
 // Ajustables ensuite dans l'onglet « Durées », sans toucher au code.
 var DUREES_DEFAUT = {
   "citadine|formule-1": 120, "citadine|formule-2": 180,
@@ -66,8 +68,9 @@ var DUREES_DEFAUT = {
   "7-places|formule-1": 120, "7-places|formule-2": 180,       // À CONFIRMER
   "camion|formule-1": 180, "camion|formule-2": 180,           // À CONFIRMER
   "utilitaire|formule-1": 180, "utilitaire|formule-2": 180,
+  "commercial|formule-1": 90, "commercial|formule-2": 120,
+  "option|vehicule-sale": 0, "option|vehicule-tres-sale": 30,  // À CONFIRMER
   "option|poils-animaux": 0,                                   // À CONFIRMER
-  "etat|peu-sale": 0, "etat|sale": 0, "etat|tres-sale": 30,   // À CONFIRMER
 };
 
 /* =====================================================================
@@ -78,7 +81,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   try {
     if (p.action === "durees") return json({ ok: true, durees: lireDurees() });
-    if (p.action === "disponibilites") return json(disponibilites(JSON.parse(p.vehicules || "[]")));
+    if (p.action === "disponibilites") return json(disponibilites(JSON.parse(p.vehicules || "[]"), p.adresse || ""));
     if (p.action === "decision") return pageDecision(p);
     return json({ ok: true, service: "Tout'Net — réservation" });
   } catch (err) {
@@ -101,18 +104,23 @@ function doPost(e) {
 
 /* =====================================================================
    CALCUL DES CRÉNEAUX (fonction pure, testable)
-   fenetres / occupes : [{ debut: ms, fin: ms }]
+   fenetres / occupes : [{ debut: ms, fin: ms }] ; un rendez-vous occupé
+   peut porter sa propre marge `margeMin` (temps de trajet), sinon
+   o.battementMin s'applique.
    o : { pasMin, battementMin, debutMin (ms, au plus tôt) }
    Renvoie la liste triée des heures de début possibles (ms).
    ===================================================================== */
 function calculerCreneaux(fenetres, occupes, dureeMin, o) {
-  var pas = o.pasMin * 60000, duree = dureeMin * 60000, batt = o.battementMin * 60000;
+  var pas = o.pasMin * 60000, duree = dureeMin * 60000;
   var vus = {}, res = [];
   fenetres.forEach(function (f) {
     var s = Math.ceil(Math.max(f.debut, o.debutMin) / pas) * pas;
     for (; s + duree <= f.fin; s += pas) {
       if (vus[s]) continue;
-      var libre = occupes.every(function (b) { return !(s < b.fin + batt && s + duree + batt > b.debut); });
+      var libre = occupes.every(function (b) {
+        var batt = (b.margeMin != null ? b.margeMin : o.battementMin) * 60000;
+        return !(s < b.fin + batt && s + duree + batt > b.debut);
+      });
       if (libre) { vus[s] = true; res.push(s); }
     }
   });
@@ -122,13 +130,13 @@ function calculerCreneaux(fenetres, occupes, dureeMin, o) {
 /* =====================================================================
    DISPONIBILITÉS
    ===================================================================== */
-function disponibilites(vehicules) {
+function disponibilites(vehicules, adresseClient) {
   var R = lireReglages();
   var duree = dureeTotale(vehicules, lireDurees());
   var now = Date.now();
   var debut = now + Number(R.delai_minimum_heures) * 3600000;
   var fin = now + Number(R.horizon_jours) * 86400000;
-  var starts = creneauxPossibles(R, duree, debut, fin);
+  var starts = creneauxPossibles(R, duree, debut, fin, adresseClient);
 
   var jours = [], index = {};
   starts.forEach(function (s) {
@@ -140,7 +148,7 @@ function disponibilites(vehicules) {
   return { ok: true, duree: duree, jours: jours };
 }
 
-function creneauxPossibles(R, duree, debutMs, finMs) {
+function creneauxPossibles(R, duree, debutMs, finMs, adresseClient) {
   var calDispo = agenda(R.agenda_disponibilites, "disponibilités");
   var calRdv = agenda(R.agenda_rendezvous, "rendez-vous");
   var de = new Date(debutMs - 86400000), a = new Date(finMs + 86400000);
@@ -153,11 +161,21 @@ function creneauxPossibles(R, duree, debutMs, finMs) {
   if (String(R.bloquer_agenda_principal).toLowerCase() === "oui") {
     evts = evts.concat(CalendarApp.getDefaultCalendar().getEvents(de, a));
   }
-  var occupes = evts.map(function (ev) { return { debut: ev.getStartTime().getTime(), fin: ev.getEndTime().getTime() }; });
+  var battement = Number(R.battement_minutes) || 0;
+  var trajetAuto = adresseClient && String(R.trajet_auto).toLowerCase() !== "non";
+  var occupes = evts.map(function (ev) {
+    var o = { debut: ev.getStartTime().getTime(), fin: ev.getEndTime().getTime() };
+    var lieu = ev.getLocation && ev.getLocation();
+    if (trajetAuto && lieu) {
+      var t = tempsTrajet(lieu, adresseClient);
+      if (t != null) o.margeMin = Math.max(battement, t + (Number(R.marge_trajet_minutes) || 0));
+    }
+    return o;
+  });
 
   return calculerCreneaux(fenetres, occupes, duree, {
     pasMin: Number(R.pas_minutes) || 30,
-    battementMin: Number(R.battement_minutes) || 0,
+    battementMin: battement,
     debutMin: debutMs,
   });
 }
@@ -189,7 +207,8 @@ function reserver(d) {
   try {
     // Le créneau est-il toujours libre ?
     var limite = Date.now() + Number(R.delai_minimum_heures) * 3600000;
-    var possibles = creneauxPossibles(R, duree, Math.max(limite, debut.getTime() - 86400000), debut.getTime() + 86400000);
+    var adresseClient = ad.rue + ", " + ad.cp + " " + ad.ville;
+    var possibles = creneauxPossibles(R, duree, Math.max(limite, debut.getTime() - 86400000), debut.getTime() + 86400000, adresseClient);
     if (possibles.indexOf(debut.getTime()) === -1) {
       return { ok: false, erreur: "creneau_indisponible", message: "Ce créneau n'est plus disponible." };
     }
@@ -371,8 +390,7 @@ function installer() {
       FORMULES.forEach(function (f) { var k = v[0] + "|" + f[0]; dur.appendRow([k, v[1] + " · " + f[1], DUREES_DEFAUT[k]]); });
     });
     OPTIONS.forEach(function (o) { var k = "option|" + o[0]; dur.appendRow([k, "Option : " + o[1] + " (temps en plus)", DUREES_DEFAUT[k] || 0]); });
-    ETATS.forEach(function (e) { var k = "etat|" + e[0]; dur.appendRow([k, "État : " + e[1] + " (temps en plus)", DUREES_DEFAUT[k] || 0]); });
-    dur.getRange("E1").setValue("Quentin : ajuste la colonne « Minutes » si besoin (7 places, camion, options et états sont provisoires).").setFontWeight("bold").setFontColor("#d92d20");
+    dur.getRange("E1").setValue("Quentin : ajuste la colonne « Minutes » si besoin (7 places, camion et options sont provisoires).").setFontWeight("bold").setFontColor("#d92d20");
     dur.setFrozenRows(1);
     dur.autoResizeColumns(1, 3);
   }
@@ -426,6 +444,24 @@ function dureeTotale(vehicules, D) {
   });
   return total;
 }
+/* Temps de trajet en voiture (minutes) entre deux adresses, via Google Maps.
+   Résultat mis en cache 6 h. Renvoie null si l'itinéraire est introuvable. */
+function tempsTrajet(a, b) {
+  if (!a || !b) return null;
+  var norm = function (x) { return String(x).toLowerCase().replace(/\s+/g, " ").trim(); };
+  var cle = "trajet:" + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, [norm(a), norm(b)].sort().join("|")));
+  var cache = CacheService.getScriptCache();
+  var c = cache.get(cle);
+  if (c !== null) return c === "" ? null : Number(c);
+  var min = null;
+  try {
+    var r = Maps.newDirectionFinder().setOrigin(a).setDestination(b).setMode(Maps.DirectionFinder.Mode.DRIVING).getDirections();
+    if (r && r.routes && r.routes.length) min = Math.ceil(r.routes[0].legs[0].duration.value / 60 / 5) * 5;
+  } catch (e) { console.error("Trajet : " + e); }
+  cache.put(cle, min == null ? "" : String(min), 21600);
+  return min;
+}
+
 function agenda(id, nom) {
   var cal = id ? safeCal(id) : null;
   if (!cal) throw new Error("Agenda " + nom + " introuvable : lancez Tout'Net > Installer.");
@@ -454,6 +490,7 @@ function lireReservation(ref) {
 
 function resumeVehicules(vehicules) {
   return vehicules.map(function (v, i) {
+    if (v.resume) return "Véhicule " + (i + 1) + " : " + v.resume;
     return "Véhicule " + (i + 1) + " : " + (v.typeNom || v.type) + " — " + (v.formuleNom || v.formule) +
       (v.niveauNom ? " — état : " + v.niveauNom : "") +
       ((v.optionsNoms && v.optionsNoms.length) ? " — options : " + v.optionsNoms.join(", ") : "");

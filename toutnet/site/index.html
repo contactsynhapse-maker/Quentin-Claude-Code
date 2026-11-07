@@ -159,7 +159,7 @@
                 </label>
               </div>
 
-              <h3 class="step__title">Quand ?</h3>
+              <h3 class="step__title">Choix de la date &amp; de l'heure</h3>
               <div class="slots" data-slots></div>
             </div>
 
@@ -199,11 +199,6 @@
               <div data-submit></div>
             </div>
 
-            <!-- Écran final -->
-            <div class="step step--done" data-step="done" hidden>
-              <div class="done" data-done></div>
-            </div>
-
             <p class="booking__error" data-error role="alert"></p>
 
             <div class="booking__nav" data-nav>
@@ -234,6 +229,14 @@
       <span data-footer-zone></span>
     </div>
   </footer>
+
+  <!-- Page de confirmation (après « Valider ma demande ») -->
+  <div class="confirmation" data-confirmation role="dialog" aria-modal="true" aria-labelledby="confirmation-titre" hidden>
+    <div class="confirmation__inner">
+      <img class="confirmation__logo" src="assets/logo.png" alt="Tout'Net" width="120" height="135">
+      <div class="done" data-confirmation-body></div>
+    </div>
+  </div>
 
   <!-- Bouton d'action fixe (mobile) -->
   <a href="#reserver" class="sticky-cta btn btn--accent" data-sticky-cta>Réserver un créneau</a>

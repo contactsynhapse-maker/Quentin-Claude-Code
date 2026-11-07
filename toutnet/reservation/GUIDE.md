@@ -55,7 +55,9 @@ Dans l'onglet **Réglages** :
 
 | Réglage | Rôle |
 |---|---|
-| `battement_minutes` | Temps libre minimum entre deux rendez-vous (trajet). Par défaut 30. |
+| `battement_minutes` | Temps libre minimum entre deux rendez-vous. Par défaut 30. |
+| `trajet_auto` | `oui` = le temps de trajet réel en voiture (Google Maps) entre le rendez-vous précédent ou suivant et l'adresse du client est ajouté automatiquement |
+| `marge_trajet_minutes` | Minutes ajoutées au trajet (stationnement, installation). Par défaut 10. |
 | `pas_minutes` | Écart entre deux heures proposées (30 → 9h00, 9h30…) |
 | `delai_minimum_heures` | Délai minimum avant un rendez-vous (par défaut 24 h) |
 | `horizon_jours` | Nombre de jours à l'avance où l'on peut réserver (par défaut 45) |
@@ -69,7 +71,7 @@ Les modifications sont prises en compte immédiatement, sans redéployer.
 
 ### Donner ses disponibilités
 Dans l'appli **Google Agenda** du téléphone, créer un événement dans l'agenda **Tout'Net — Disponibilités** (par exemple « Dispo », samedi de 9h à 18h). On peut le rendre **récurrent** (tous les samedis…).
-- Le site ne propose que les heures où **toute la durée de l'intervention tient dans la plage**, sans chevaucher un autre rendez-vous, en respectant le temps de battement.
+- Le site ne propose que les heures où **toute la durée de l'intervention tient dans la plage**, sans chevaucher un autre rendez-vous, et en laissant le **temps de trajet** depuis et vers les autres rendez-vous de la journée (calculé avec Google Maps à partir des adresses).
 - Pour bloquer un moment : réduire ou supprimer la plage, ou ajouter un événement « Indisponible » dans **Tout'Net — Rendez-vous**.
 - Les événements « journée entière » ne comptent pas comme disponibilités : il faut indiquer des heures.
 

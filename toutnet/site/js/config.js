@@ -69,14 +69,20 @@ window.SITE_CONFIG = {
   ],
 
   /* ------------------------------------------------------------------
-     TYPES DE VÉHICULES & FOURCHETTES DE PRIX (TTC)
+     TYPES DE VÉHICULES & PRIX (TTC)
+     prixMin / prixMax : fourchette affichée dans « Tarifs » (flyer).
+     prix : prix de chaque formule pour ce véhicule, utilisé pour
+            l'estimation. La différence s'affiche à côté de la formule.
+            Règle de départ : formule 2 = prixMax − 20 € (le « très sale »
+            à +20 € complète la fourchette). À VALIDER / AJUSTER.
      ------------------------------------------------------------------ */
   vehicules: [
-    { id: "citadine",   nom: "Citadine",       prixMin: 90,  prixMax: 130 },
-    { id: "break-suv",  nom: "Break · SUV",    prixMin: 90,  prixMax: 140 },
-    { id: "7-places",   nom: "7 places (van)", prixMin: 100, prixMax: 150 },
-    { id: "camion",     nom: "Camion",         prixMin: 100, prixMax: 150 },
-    { id: "utilitaire", nom: "Utilitaire",     prixMin: 100, prixMax: 150, note: "Prix en fonction du véhicule" },
+    { id: "citadine",   nom: "Citadine",            prixMin: 90,  prixMax: 130, prix: { "formule-1": 90,  "formule-2": 110 } },
+    { id: "break-suv",  nom: "Break · SUV",         prixMin: 90,  prixMax: 140, prix: { "formule-1": 90,  "formule-2": 120 } },
+    { id: "7-places",   nom: "7 places (van)",      prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
+    { id: "camion",     nom: "Camion",              prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
+    { id: "utilitaire", nom: "Utilitaire",          prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 }, note: "Prix en fonction du véhicule" },
+    { id: "commercial", nom: "Véhicule commercial", prixMin: 90,  prixMax: 120, prix: { "formule-1": 90,  "formule-2": 100 }, note: "Prix variable selon la propreté" },
   ],
 
   /* ------------------------------------------------------------------
@@ -89,7 +95,6 @@ window.SITE_CONFIG = {
       nom: "Aspiration à sec",
       sousTitre: "Nettoyage simple, sans shampouineuse",
       inclus: ["Aspiration complète", "Dépoussiérage"],
-      poids: 0,      // position dans la fourchette de prix (voir « ESTIMATION » plus bas)
     },
     {
       id: "formule-2",
@@ -99,39 +104,30 @@ window.SITE_CONFIG = {
       inclus: ["Tout de la formule 1", "Shampouinage des sièges", "Nettoyage approfondi"],
       badge: "La plus complète · Recommandée",
       miseEnAvant: true,
-      poids: 0.5,
     },
   ],
 
   /* ------------------------------------------------------------------
      OPTIONS (cases à cocher, par véhicule)
+     `groupe` : une seule option du même groupe peut être cochée
+     (ex. « sale » OU « très sale »).
      ------------------------------------------------------------------ */
   options: [
-    { id: "poils-animaux", nom: "Poils d'animaux", prix: 15, description: "Supplément pour les véhicules de nos compagnons à poils." },
+    { id: "vehicule-sale",      nom: "Véhicule sale",      prix: 10, groupe: "etat", description: "Supplément indicatif, ajusté sur place selon l'état réel." },
+    { id: "vehicule-tres-sale", nom: "Véhicule très sale", prix: 20, groupe: "etat", description: "Supplément indicatif, ajusté sur place selon l'état réel." },
+    { id: "poils-animaux",      nom: "Poils d'animaux",    prix: 15, description: "Supplément pour les véhicules de nos compagnons à poils." },
   ],
 
   /* ------------------------------------------------------------------
-     ÉTAT DU VÉHICULE (question posée pour chaque véhicule)
-     `poids` : position dans la fourchette de prix (voir « ESTIMATION »).
-     Liste vide = question non posée.
+     ÉTAT DU VÉHICULE — question séparée (non utilisée : l'état est
+     proposé en option « Véhicule sale / très sale »).
      ------------------------------------------------------------------ */
-  niveaux: [
-    { id: "peu-sale",  nom: "Peu sale",  description: "Entretien courant : poussière, quelques miettes.", poids: 0 },
-    { id: "sale",      nom: "Sale",      description: "Saleté marquée : terre, sable, taches.",          poids: 0.25 },
-    { id: "tres-sale", nom: "Très sale", description: "Saleté importante, pas nettoyé depuis longtemps.", poids: 0.5 },
-  ],
+  niveaux: [],
 
-  /* ------------------------------------------------------------------
-     ESTIMATION DU PRIX (affichée au client)
-     Pour chaque véhicule :
-       prix = prixMin + (prixMax − prixMin) × (poids formule + poids état)
-              + prix des options, arrondi à 5 €.
-     Exemple Citadine (90–130 €) : Formule 1 peu sale = 90 €,
-     Formule 2 sale = 90 + 40 × 0,75 = 120 €, Formule 2 très sale = 130 €.
-     Puis remise pack éventuelle (packs avec `appliquer: true`).
-     Les frais de déplacement ne sont jamais affichés au client.
-     ------------------------------------------------------------------ */
-  arrondiPrix: 5,
+  /* ESTIMATION affichée au client, pour chaque véhicule :
+       prix de la formule choisie (vehicules[].prix) + options cochées,
+     puis remise pack éventuelle. Les frais de déplacement ne sont
+     jamais affichés au client. */
 
   /* ------------------------------------------------------------------
      PACKS (remise selon le nombre de véhicules d'une même réservation)
@@ -168,7 +164,11 @@ window.SITE_CONFIG = {
     maxVehicules: 10,
 
     // Texte affiché sous l'estimation de prix.
-    mentionEstimation: "Prix estimé TTC selon le véhicule, la formule, son état et les options. Le tarif définitif vous est confirmé par Tout'Net.",
+    mentionEstimation: "Prix estimé TTC. Les suppléments liés à l'état du véhicule sont confirmés sur place par Quentin.",
+
+    // Aperçu : tant que apiUrl est vide, des créneaux d'EXEMPLE sont
+    // affichés (mardi → samedi) et aucune demande n'est envoyée.
+    demo: true,
 
     // Durées d'intervention (minutes), utilisées pour afficher la durée
     // estimée tant que le service Google n'est pas installé. Une fois
@@ -179,7 +179,8 @@ window.SITE_CONFIG = {
       "7-places|formule-1": 120,   "7-places|formule-2": 180,   // À CONFIRMER
       "camion|formule-1": 180,     "camion|formule-2": 180,     // À CONFIRMER
       "utilitaire|formule-1": 180, "utilitaire|formule-2": 180,
-      "etat|tres-sale": 30,        // À CONFIRMER — temps en plus si très sale
+      "commercial|formule-1": 90,  "commercial|formule-2": 120,
+      "option|vehicule-tres-sale": 30,   // À CONFIRMER — temps en plus si très sale
     },
   },
 };

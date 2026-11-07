@@ -94,35 +94,44 @@
   }
 
   /* ---------- Estimation de prix ----------
-     Règle (modifiable dans config.js, rubrique « ESTIMATION ») :
-       prix véhicule = prixMin + (prixMax − prixMin) × (poids formule + poids état)
-                       + options, arrondi à `arrondiPrix` €
-       puis remise pack (seulement les packs avec `appliquer: true`).
-     Un véhicule dont la formule ou l'état n'est pas encore choisi est
-     compté « à partir de ». Aucun frais de déplacement n'est affiché.   */
+     Pour chaque véhicule : prix de la formule choisie (vehicules[].prix)
+     + prix des options cochées ; puis remise pack (packs `appliquer: true`).
+     Chaque ligne est détaillée pour le récapitulatif.
+     Aucun frais de déplacement n'est affiché.                            */
+  function prixFormule(type, formuleId) {
+    if (!type) return null;
+    if (type.prix && typeof type.prix[formuleId] === "number") return type.prix[formuleId];
+    return type.prixMin;
+  }
+  function supplementFormule(type, formuleId) {
+    var base = prixFormule(type, (C.formules[0] || {}).id), p = prixFormule(type, formuleId);
+    return base == null || p == null ? null : p - base;
+  }
   function estimer(vehicules) {
-    var lignes = [], total = 0, n = 0, partiel = false;
-    var arr = C.arrondiPrix || 1;
-    var niveaux = C.niveaux || [];
+    var details = [], total = 0, n = 0, partiel = false;
     vehicules.forEach(function (v, i) {
       var type = byId(C.vehicules, v.type);
       if (!type) return;
       n++;
-      var f = byId(C.formules, v.formule), e = byId(niveaux, v.niveau);
-      var incomplet = !f || (niveaux.length && !e);
-      if (incomplet) partiel = true;
-      var poids = Math.min(1, Math.max(0, (f && f.poids || 0) + (e && e.poids || 0)));
-      var prix = Math.round((type.prixMin + (type.prixMax - type.prixMin) * poids) / arr) * arr;
-      (v.options || []).forEach(function (id) { var o = byId(C.options, id); if (o && o.prix) prix += o.prix; });
-      total += prix;
-      lignes.push({ index: i, label: "Véhicule " + (i + 1) + " · " + type.nom, prix: prix, partiel: incomplet });
+      var f = byId(C.formules, v.formule);
+      var lignes = [];
+      var base = f ? prixFormule(type, f.id) : prixFormule(type, (C.formules[0] || {}).id);
+      if (!f) partiel = true;
+      lignes.push({ label: type.nom + (f ? " · " + f.nom : " · formule à choisir"), prix: base, base: true });
+      (v.options || []).forEach(function (id) {
+        var o = byId(C.options, id);
+        if (o) lignes.push({ label: o.nom, prix: o.prix || 0, option: true });
+      });
+      var sous = lignes.reduce(function (s, l) { return s + l.prix; }, 0);
+      total += sous;
+      details.push({ index: i, titre: "Véhicule " + (i + 1), type: type, formule: f, lignes: lignes, sousTotal: sous, partiel: !f });
     });
     var pack = null;
     (C.packs || []).forEach(function (p) {
       if (p.appliquer !== false && n >= p.min && (!p.max || n <= p.max)) pack = p;
     });
     var remise = pack ? Math.round(total * pack.remise / 100) : 0;
-    return { lignes: lignes, nb: n, sousTotal: total, pack: pack, remise: remise, total: total - remise, partiel: partiel };
+    return { details: details, nb: n, sousTotal: total, pack: pack, remise: remise, total: total - remise, partiel: partiel };
   }
   function prixTexte(e) { return (e.partiel ? "à partir de " : "") + euros(e.total); }
 
@@ -184,6 +193,14 @@
     else media.hidden = true;
   }
 
+  function prixCarte(f) {
+    var vals = (C.vehicules || []).map(function (v) { return C.formules[0].id === f.id ? prixFormule(v, f.id) : supplementFormule(v, f.id); })
+      .filter(function (x) { return typeof x === "number"; });
+    if (!vals.length) return "";
+    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+    if (C.formules[0].id === f.id) return "À partir de " + euros(mn);
+    return (mn === mx ? "+" + euros(mn) : "+" + mn + " à +" + euros(mx)) + " selon le véhicule";
+  }
   function renderFormules() {
     var box = $("[data-formules]");
     (C.formules || []).forEach(function (f) {
@@ -192,6 +209,7 @@
         el("p", { class: "formula__tag", text: f.etiquette || "" }),
         el("h3", { text: f.nom }),
         f.sousTitre ? el("p", { class: "formula__sub", text: f.sousTitre }) : null,
+        el("p", { class: "formula__price", text: prixCarte(f) }),
         el("ul", null, (f.inclus || []).map(function (i) { return el("li", null, [el("span", { class: "check", "aria-hidden": "true" }), i]); })),
         el("a", { class: "btn " + (f.miseEnAvant ? "btn--accent" : "btn--primary"), href: "#reserver", "data-formule": f.id, text: "Choisir cette formule" }),
       ]));
@@ -334,6 +352,7 @@
   window.Site = {
     config: C, el: el, filled: filled, icons: ICONS, icon: icon, byId: byId,
     euros: euros, fourchette: fourchette, estimer: estimer, prixTexte: prixTexte,
+    prixFormule: prixFormule, supplementFormule: supplementFormule,
     contactLinks: contactLinks, linkButton: linkButton,
   };
 })();

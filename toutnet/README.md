@@ -22,17 +22,20 @@ toutnet/
 
 - **Accueil** : logo, accroche du flyer, boutons « Réserver » et « Voir les tarifs ».
 - **Avantages** : service mobile, deux formules, tarifs dégressifs, réservation en ligne.
-- **Formules** : Formule 1 (Aspiration à sec) et Formule 2 (Nettoyage complet par extraction, recommandée), option Poils d'animaux +15 €.
-- **Tarifs** : fourchettes de prix selon le véhicule, packs Famille −10 % et Flotte entreprise −15 %.
-- **Avant / Après** : curseur de comparaison (photos à fournir).
+- **Formules** : Formule 1 (Aspiration à sec) et Formule 2 (Nettoyage complet par extraction, recommandée), avec leur prix indicatif ; options Véhicule sale +10 €, Véhicule très sale +20 € (supplément ajusté sur place) et Poils d'animaux +15 €.
+- **Tarifs** : fourchettes de prix selon le véhicule (dont Véhicule commercial 90–120 €), packs Famille −10 % et Flotte entreprise −15 %.
+- **Avant / Après** : curseur de comparaison sur des photos recalées (banquette, coffre).
 - **Réservation**, en 4 étapes :
-  1. **Véhicules** : un onglet par véhicule (type, formule, options), estimation du prix en direct avec la remise pack et la durée estimée ;
-  2. **Adresse et créneau** : seuls les créneaux réellement libres de Quentin sont proposés ;
+  1. **Véhicules** : un onglet par véhicule (type, formule avec le prix ou le supplément affiché, options), et un récapitulatif chiffré ligne par ligne (formule, chaque option, sous-total, remise Famille, durée, prix estimé) ;
+  2. **Adresse et créneau** : un calendrier façon Planity (un jour par colonne) qui ne montre que les heures où Quentin est disponible, trajet compris ;
   3. **Coordonnées** : prénom, nom, téléphone, e-mail, précisions ;
-  4. **Confirmation** : le créneau est bloqué, Quentin reçoit un e-mail pour accepter ou refuser, et le client est prévenu par e-mail à chaque étape.
-- **Contact** : appel, WhatsApp, SMS, e-mail (et Instagram dès que l'identifiant est renseigné).
+  4. **Récapitulatif** complet, puis **Valider ma demande** : le client arrive sur une page de confirmation (« Quentin vous recontacte rapidement »), avec un bouton « Retour au site ». Quentin reçoit la demande par e-mail sur tout.net81@gmail.com.
+- **Contact** : appel, WhatsApp, SMS, e-mail, Instagram (tout.net81).
 
-Tant que le service Google n'est pas installé (`apiUrl` vide dans `config.js`), la réservation fonctionne en **mode demande** : le client choisit une date souhaitée et envoie un récapitulatif déjà rédigé par e-mail, WhatsApp ou SMS.
+Tant que le service Google n'est pas installé (`apiUrl` vide dans `config.js`), le site est en **mode aperçu** : le calendrier montre des créneaux d'exemple (signalés comme tels) et aucune demande n'est envoyée.
+
+### Calcul du prix estimé
+Pour chaque véhicule : prix de la formule choisie (`vehicules[].prix` dans `config.js`), plus les options cochées. Puis la remise Famille (−10 %, de 2 à 4 véhicules). La remise Flotte (−15 %) n'est pas déduite automatiquement, et les frais de déplacement ne sont jamais affichés.
 
 ## Modifier le site
 
@@ -78,10 +81,9 @@ Le workflow `.github/workflows/deploy-toutnet.yml` publie le dossier `toutnet/si
 
 ## Ce qui reste à fournir
 
-- Les photos avant/après.
-- L'identifiant Instagram.
+- D'autres photos avant/après (même endroit, même angle, même lumière).
 - Le texte de présentation de Quentin (section masquée tant qu'il est vide), et une photo si possible.
-- La liste des villes desservies.
-- Les durées réelles par formule et par véhicule (onglet **Durées**).
-- Les règles des frais de déplacement, s'il y en a.
+- La validation des prix de la formule 2 par véhicule (`vehicules[].prix`).
+- Les durées 7 places, camion et options (onglet **Durées**).
+- Les frais de déplacement (jamais affichés au client, ajoutés plus tard).
 - Le devis téléchargeable : à définir ensemble.
