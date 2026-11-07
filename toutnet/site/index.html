@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tout'Net — Nettoyage de véhicules à domicile</title>
+  <meta name="description" content="Tout'Net, nettoyage intérieur de véhicules à domicile. Aspiration à sec ou nettoyage complet par extraction, tarifs dégressifs et réservation en ligne.">
+  <meta name="theme-color" content="#1559d6">
+
+  <!-- Aperçu du lien partagé (Instagram, WhatsApp, SMS…) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tout'Net — Nettoyage de véhicules à domicile">
+  <meta property="og:description" content="Un intérieur de véhicule impeccable, sans vous déplacer. Réservez votre créneau en ligne.">
+  <meta property="og:image" content="assets/logo.png">
+
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+  <!-- ============ EN-TÊTE ============ -->
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="#accueil" class="brand" data-brand aria-label="Tout'Net — accueil"></a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav" id="nav" aria-label="Navigation principale">
+        <a href="#formules">Formules</a>
+        <a href="#tarifs">Tarifs</a>
+        <a href="#avant-apres">Avant / Après</a>
+        <a href="#contact">Contact</a>
+        <a href="#reserver" class="btn btn--small btn--accent">Réserver</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <!-- ============ ACCUEIL ============ -->
+    <section class="hero" id="accueil">
+      <div class="hero__deco" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="container hero__inner">
+        <div class="hero__text">
+          <p class="pill" data-badge></p>
+          <h1 class="hero__title" data-accroche></h1>
+          <p class="hero__lead" data-sous-accroche></p>
+          <div class="hero__cta">
+            <a href="#reserver" class="btn btn--accent btn--large">Réserver un créneau</a>
+            <a href="#tarifs" class="btn btn--ghost btn--large">Voir les tarifs</a>
+          </div>
+          <p class="hero__from" data-hero-prix></p>
+        </div>
+        <div class="hero__logo" data-hero-logo></div>
+      </div>
+    </section>
+
+    <!-- ============ AVANTAGES ============ -->
+    <section class="perks" aria-label="Nos avantages">
+      <div class="container perks__grid" data-avantages></div>
+    </section>
+
+    <!-- ============ PRÉSENTATION (masquée si vide) ============ -->
+    <section class="section" id="presentation" data-presentation hidden>
+      <div class="container about">
+        <div class="about__media" data-presentation-photo></div>
+        <div class="about__text">
+          <p class="eyebrow">Présentation</p>
+          <h2 data-presentation-titre></h2>
+          <p data-presentation-texte></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FORMULES ============ -->
+    <section class="section" id="formules">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Pack de nettoyage</p>
+          <h2>Choisissez votre formule</h2>
+        </div>
+        <div class="formulas" data-formules></div>
+        <div class="extras" data-options></div>
+      </div>
+    </section>
+
+    <!-- ============ TARIFS ============ -->
+    <section class="section section--tint" id="tarifs">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Tarifs</p>
+          <h2>Tarif selon le véhicule</h2>
+          <p class="section__sub">Prix TTC.</p>
+        </div>
+        <div class="pricing">
+          <div class="price-table" data-tarifs></div>
+          <div class="packs" data-packs></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AVANT / APRÈS ============ -->
+    <section class="section section--dark" id="avant-apres">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Résultats</p>
+          <h2>Avant / Après</h2>
+          <p class="section__sub">Faites glisser le curseur pour révéler le résultat.</p>
+        </div>
+        <div class="gallery" data-galerie></div>
+      </div>
+    </section>
+
+    <!-- ============ RÉSERVATION ============ -->
+    <section class="section section--tint" id="reserver">
+      <div class="container container--narrow">
+        <div class="section__head">
+          <p class="eyebrow">Réservation</p>
+          <h2>Composez votre formule et réservez</h2>
+          <p class="section__sub">Un ou plusieurs véhicules, votre adresse, votre créneau : c'est tout.</p>
+        </div>
+
+        <div class="booking" data-booking>
+          <ol class="steps" aria-label="Étapes de la réservation">
+            <li class="steps__item"><span>1</span><em>Véhicules</em></li>
+            <li class="steps__item"><span>2</span><em>Adresse &amp; date</em></li>
+            <li class="steps__item"><span>3</span><em>Coordonnées</em></li>
+            <li class="steps__item"><span>4</span><em>Confirmation</em></li>
+          </ol>
+
+          <form class="booking__form" data-form novalidate autocomplete="on">
+            <!-- Étape 1 : véhicules -->
+            <div class="step" data-step="1">
+              <div class="vtabs" role="tablist" aria-label="Véhicules" data-vtabs></div>
+              <div class="vpanel" data-vpanel></div>
+              <div class="estimate" data-estimate aria-live="polite"></div>
+            </div>
+
+            <!-- Étape 2 : adresse & créneau -->
+            <div class="step" data-step="2" hidden>
+              <h3 class="step__title">Où intervient-on ?</h3>
+              <p class="step__hint">Tout'Net se déplace à l'adresse de votre choix.</p>
+              <div class="fields">
+                <label class="field field--full">
+                  <span>Adresse</span>
+                  <input type="text" name="rue" autocomplete="street-address" placeholder="N° et nom de rue" required>
+                </label>
+                <label class="field">
+                  <span>Code postal</span>
+                  <input type="text" name="cp" autocomplete="postal-code" inputmode="numeric" maxlength="5" required>
+                </label>
+                <label class="field">
+                  <span>Ville</span>
+                  <input type="text" name="ville" autocomplete="address-level2" required>
+                </label>
+              </div>
+
+              <h3 class="step__title">Quand ?</h3>
+              <div class="slots" data-slots></div>
+            </div>
+
+            <!-- Étape 3 : coordonnées -->
+            <div class="step" data-step="3" hidden>
+              <h3 class="step__title">Vos coordonnées</h3>
+              <div class="fields">
+                <label class="field">
+                  <span>Prénom</span>
+                  <input type="text" name="prenom" autocomplete="given-name" required>
+                </label>
+                <label class="field">
+                  <span>Nom</span>
+                  <input type="text" name="nom" autocomplete="family-name" required>
+                </label>
+                <label class="field">
+                  <span>Téléphone</span>
+                  <input type="tel" name="telephone" autocomplete="tel" inputmode="tel" required>
+                </label>
+                <label class="field">
+                  <span>E-mail</span>
+                  <input type="email" name="email" autocomplete="email" inputmode="email" required>
+                </label>
+                <label class="field field--full">
+                  <span>Précisions <small>(facultatif)</small></span>
+                  <textarea name="remarques" rows="3" placeholder="Accès, stationnement, remarques sur le véhicule…"></textarea>
+                </label>
+                <!-- Piège anti-robots : ne pas remplir -->
+                <label class="hp" aria-hidden="true">Site web <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+              </div>
+            </div>
+
+            <!-- Étape 4 : confirmation -->
+            <div class="step" data-step="4" hidden>
+              <h3 class="step__title">Récapitulatif</h3>
+              <div class="recap" data-recap></div>
+              <div data-submit></div>
+            </div>
+
+            <!-- Écran final -->
+            <div class="step step--done" data-step="done" hidden>
+              <div class="done" data-done></div>
+            </div>
+
+            <p class="booking__error" data-error role="alert"></p>
+
+            <div class="booking__nav" data-nav>
+              <button type="button" class="btn btn--outline" data-prev hidden>Retour</button>
+              <button type="button" class="btn btn--primary" data-next>Continuer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="section section--blue" id="contact">
+      <div class="container contact">
+        <p class="eyebrow eyebrow--light">Contact</p>
+        <h2>Une question ? Contactez Tout'Net</h2>
+        <p class="contact__lines" data-contact-infos></p>
+        <div class="contact__buttons" data-contact-buttons></div>
+        <p class="contact__slogan" data-slogan></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PIED DE PAGE ============ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span data-footer-nom></span>
+      <span data-footer-zone></span>
+    </div>
+  </footer>
+
+  <!-- Bouton d'action fixe (mobile) -->
+  <a href="#reserver" class="sticky-cta btn btn--accent" data-sticky-cta>Réserver un créneau</a>
+
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/reservation.js"></script>
+</body>
+</html>
