@@ -287,9 +287,8 @@
     for (var n = 1; n <= 28; n++) {
       var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
       var wd = d.getDay();
-      if (wd === 0 || wd === 1) continue; // ni dimanche ni lundi
       var creneaux = [];
-      [[9 * 60, wd === 6 ? 13 * 60 : 18 * 60]].forEach(function (w) { // 9 h – 18 h (samedi 9 h – 13 h)
+      [[8 * 60, 18 * 60]].forEach(function (w) { // tous les jours, 8 h – 18 h
         for (var m = w[0]; m + duree <= w[1]; m += 30) {
           if ((n * 7 + m / 30) % 5 === 0) continue; // quelques créneaux déjà pris
           creneaux.push(String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"));
@@ -386,8 +385,18 @@
       el("button", { type: "button", class: "cal__nav", "data-page": "1", "aria-label": "Jours suivants", disabled: state.page >= maxPage }, ["›"]),
     ]);
     var grid = el("div", { class: "cal__grid", style: "grid-template-columns:repeat(" + cols + ",minmax(0,1fr))" });
+    var duree = data.duree || 0;
     visibles.forEach(function (date) {
       var cr = cal.map[date] || [];
+      var bloc = {}, fin = "";
+      if (state.jour === date && state.heure && duree) {
+        // toutes les demi-heures couvertes par l'intervention s'affichent en bleu
+        var debutMin = minutes(state.heure);
+        for (var m = debutMin; m < debutMin + duree; m += 30) bloc[hhmm(m)] = true;
+        fin = hhmm(debutMin + duree);
+        cr = cr.concat(Object.keys(bloc)).filter(function (h, i, a) { return a.indexOf(h) === i; }).sort();
+      }
+      var rang = 0;
       grid.appendChild(el("div", { class: "cal__col" }, [
         el("p", { class: "cal__day" }, [
           el("span", { class: "cal__wd", text: fmtDate(date, { weekday: cols > 5 ? "long" : "short" }).replace(".", "") }),
@@ -395,9 +404,15 @@
         ]),
         el("div", { class: "cal__slots" }, cr.length ? cr.map(function (h) {
           var on = state.jour === date && state.heure === h;
-          return el("button", { type: "button", class: "cal__slot" + (on ? " is-active" : ""), "data-date": date, "data-time": h,
-            "aria-label": dateLongue(date) + " à " + heureFr(h), "aria-pressed": String(on) }, [h]);
-        }) : [el("span", { class: "cal__none", text: "—" })]),
+          var dansBloc = !!bloc[h];
+          var dispo = (cal.map[date] || []).indexOf(h) > -1;
+          var cls = "cal__slot" + (on ? " is-active" : dansBloc ? " is-block" : "") + (dansBloc && h === hhmm(minutes(fin) - 30) ? " is-last" : "");
+          var b = el("button", { type: "button", class: cls, "data-date": dispo ? date : null, "data-time": dispo ? h : null, disabled: !dispo && !dansBloc ? true : null,
+            tabindex: dansBloc && !on && !dispo ? "-1" : null,
+            "aria-label": dateLongue(date) + " à " + heureFr(h) + (dansBloc && !on ? " (intervention en cours)" : ""), "aria-pressed": String(on) }, [h]);
+          if (dansBloc) b.style.animationDelay = (rang++ * 45) + "ms";
+          return b;
+        }).concat(fin ? [el("span", { class: "cal__end", text: "Fin ≈ " + heureFr(fin) })] : []) : [el("span", { class: "cal__none", text: "—" })]),
       ]));
     });
     slotsBox.appendChild(el("div", { class: "cal" }, [
@@ -405,9 +420,12 @@
       head, grid,
     ]));
     if (state.jour && state.heure) {
-      slotsBox.appendChild(el("p", { class: "slots__chosen", text: "Créneau choisi : " + dateLongue(state.jour) + " à " + heureFr(state.heure) }));
+      var f = hhmm(minutes(state.heure) + (data.duree || 0));
+      slotsBox.appendChild(el("p", { class: "slots__chosen", text: "Créneau choisi : " + dateLongue(state.jour) + ", de " + heureFr(state.heure) + " à " + heureFr(f) + " environ (" + formatDuree(data.duree) + ")" }));
     }
   }
+  function minutes(h) { var p = h.split(":"); return Number(p[0]) * 60 + Number(p[1]); }
+  function hhmm(m) { return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
 
   slotsBox.addEventListener("click", function (e) {
     var nav = e.target.closest("[data-page]");
@@ -462,6 +480,7 @@
     return "";
   }
   form.addEventListener("input", function (e) { if (e.target.classList.contains("is-invalid")) e.target.classList.remove("is-invalid"); });
+  form.addEventListener("change", function (e) { if (e.target.name === "accepte") e.target.closest(".accept").classList.remove("is-invalid"); });
 
   /* =================================================================
      ÉTAPE 4 — RÉCAPITULATIF & VALIDATION
@@ -494,9 +513,16 @@
     submitBox.textContent = "";
     var btn = el("button", { type: "button", class: "btn btn--accent btn--large btn--block", "data-confirm": "" }, ["Valider ma demande"]);
     btn.addEventListener("click", function () { envoyer(btn); });
+    var accept = el("label", { class: "accept" }, [
+      el("input", { type: "checkbox", name: "accepte", id: "accepte" }),
+      el("span", null, ["J'accepte les ", el("a", { href: "mentions-legales.html#conditions", target: "_blank", rel: "noopener" }, ["conditions de réservation"]),
+        " et je demande que la prestation soit réalisée à la date choisie, y compris avant la fin du délai de rétractation de 14 jours."]),
+    ]);
     submitBox.appendChild(el("div", { class: "submit" }, [
+      accept,
       btn,
-      el("p", { class: "consent", text: "Votre demande est transmise à Tout'Net. Quentin la vérifie puis vous confirme le rendez-vous rapidement. Vos informations servent uniquement au traitement de votre demande." }),
+      el("p", { class: "consent" }, ["Votre demande est transmise à Tout'Net. Quentin la vérifie puis vous confirme le rendez-vous rapidement. Vos informations servent uniquement au traitement de votre demande (",
+        el("a", { href: "mentions-legales.html#confidentialite", target: "_blank", rel: "noopener" }, ["politique de confidentialité"]), ")."]),
       DEMO ? el("p", { class: "demo-banner", text: "Aperçu : aucune demande ne sera réellement envoyée." }) : null,
     ]));
   }
@@ -508,6 +534,13 @@
 
   function envoyer(btn) {
     if (state.envoi) return;
+    var acc = form.elements.accepte;
+    if (acc && !acc.checked) {
+      acc.closest(".accept").classList.add("is-invalid");
+      errorBox.textContent = "Cochez la case pour accepter les conditions de réservation.";
+      acc.focus();
+      return;
+    }
     state.envoi = true;
     btn.disabled = true;
     btn.textContent = "";
@@ -535,6 +568,7 @@
       estimation: { prix: e.total, pack: e.pack ? e.pack.nom + " −" + e.pack.remise + " %" : "",
         texte: euros(e.total) + (e.pack ? " (pack " + e.pack.nom + " −" + e.pack.remise + " % inclus)" : "") },
       website: val("website"),
+      conditionsAcceptees: true,
     };
 
     var envoi = API

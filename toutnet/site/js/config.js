@@ -109,12 +109,10 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------------
      OPTIONS (cases à cocher, par véhicule)
-     `groupe` : une seule option du même groupe peut être cochée
-     (ex. « sale » OU « très sale »).
+     `groupe` (facultatif) : une seule option du même groupe peut être cochée.
      ------------------------------------------------------------------ */
   options: [
-    { id: "vehicule-sale",      nom: "Véhicule sale",      prix: 10, groupe: "etat", description: "Supplément indicatif, ajusté sur place selon l'état réel." },
-    { id: "vehicule-tres-sale", nom: "Véhicule très sale", prix: 20, groupe: "etat", description: "Supplément indicatif, ajusté sur place selon l'état réel." },
+    { id: "vehicule-tres-sale", nom: "Véhicule très sale", prix: 20, description: "Supplément indicatif, ajusté sur place selon l'état réel." },
     { id: "poils-animaux",      nom: "Poils d'animaux",    prix: 15, description: "Supplément pour les véhicules de nos compagnons à poils." },
   ],
 
@@ -136,7 +134,7 @@ window.SITE_CONFIG = {
      ------------------------------------------------------------------ */
   packs: [
     { nom: "Famille",           remise: 10, min: 2, max: 4, description: "2 à 4 véhicules",        appliquer: true },
-    { nom: "Flotte entreprise", remise: 15, min: 5,         description: "À partir de 5 véhicules", appliquer: false },
+    { nom: "Flotte entreprise", remise: 15, min: 5,         description: "À partir de 5 véhicules", appliquer: true },
   ],
 
   /* ------------------------------------------------------------------
@@ -167,7 +165,7 @@ window.SITE_CONFIG = {
     mentionEstimation: "Prix estimé TTC. Les suppléments liés à l'état du véhicule sont confirmés sur place par Quentin.",
 
     // Aperçu : tant que apiUrl est vide, des créneaux d'EXEMPLE sont
-    // affichés (mardi → samedi) et aucune demande n'est envoyée.
+    // affichés (tous les jours, 8 h – 18 h) et aucune demande n'est envoyée.
     demo: true,
 
     // Durées d'intervention (minutes), utilisées pour afficher la durée

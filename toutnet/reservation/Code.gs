@@ -57,7 +57,7 @@ var REGLAGES_DEFAUT = [
 // Doivent correspondre aux identifiants `id` de js/config.js du site.
 var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"], ["commercial", "Véhicule commercial"]];
 var FORMULES = [["formule-1", "Formule 1 — Aspiration à sec"], ["formule-2", "Formule 2 — Nettoyage complet par extraction"]];
-var OPTIONS = [["vehicule-sale", "Véhicule sale"], ["vehicule-tres-sale", "Véhicule très sale"], ["poils-animaux", "Poils d'animaux"]];
+var OPTIONS = [["vehicule-tres-sale", "Véhicule très sale"], ["poils-animaux", "Poils d'animaux"]];
 // Durées de départ (minutes), d'après Quentin : citadine et break/SUV 2 h (formule 1)
 // et 3 h (formule 2), utilitaire 3 h minimum, véhicule commercial 1 h 30 à 2 h.
 // Les lignes « À CONFIRMER » sont provisoires.
@@ -69,7 +69,7 @@ var DUREES_DEFAUT = {
   "camion|formule-1": 180, "camion|formule-2": 180,           // À CONFIRMER
   "utilitaire|formule-1": 180, "utilitaire|formule-2": 180,
   "commercial|formule-1": 90, "commercial|formule-2": 120,
-  "option|vehicule-sale": 0, "option|vehicule-tres-sale": 30,  // À CONFIRMER
+  "option|vehicule-tres-sale": 30,
   "option|poils-animaux": 0,                                   // À CONFIRMER
 };
 
@@ -390,7 +390,7 @@ function installer() {
       FORMULES.forEach(function (f) { var k = v[0] + "|" + f[0]; dur.appendRow([k, v[1] + " · " + f[1], DUREES_DEFAUT[k]]); });
     });
     OPTIONS.forEach(function (o) { var k = "option|" + o[0]; dur.appendRow([k, "Option : " + o[1] + " (temps en plus)", DUREES_DEFAUT[k] || 0]); });
-    dur.getRange("E1").setValue("Quentin : ajuste la colonne « Minutes » si besoin (7 places, camion et options sont provisoires).").setFontWeight("bold").setFontColor("#d92d20");
+    dur.getRange("E1").setValue("Quentin : ajuste la colonne « Minutes » si besoin.").setFontWeight("bold").setFontColor("#d92d20");
     dur.setFrozenRows(1);
     dur.autoResizeColumns(1, 3);
   }

@@ -385,7 +385,13 @@ button, input, textarea { font: inherit; }
   font-weight: 600; font-size: .9rem; cursor: pointer; font-variant-numeric: tabular-nums; transition: background .15s, color .15s;
 }
 .cal__slot:hover { background: #dbe7fd; }
-.cal__slot.is-active { background: var(--c-blue); color: var(--c-white); }
+.cal__slot.is-active { background: var(--c-blue); color: var(--c-white); border-radius: 8px 8px 2px 2px; }
+.cal__slot.is-block { background: #4d8cf0; color: var(--c-white); border-radius: 2px; cursor: default; animation: remplir .35s ease-out both; }
+.cal__slot.is-block.is-last { border-radius: 2px 2px 8px 8px; }
+.cal__slot.is-active { animation: remplir .25s ease-out both; }
+.cal__slot:disabled { cursor: default; }
+.cal__end { text-align: center; font-size: .78rem; font-weight: 700; color: var(--c-blue); margin-top: 2px; animation: remplir .35s ease-out both; }
+@keyframes remplir { from { opacity: 0; transform: scaleY(.4); } to { opacity: 1; transform: none; } }
 .cal__none { text-align: center; color: #b8c6e0; padding-top: 6px; }
 @media (max-width: 520px) { .cal__slot { font-size: .82rem; padding: 8px 0; } .cal__wd { font-size: .82rem; } .cal__grid { gap: 5px; } }
 .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--c-line); border-top-color: var(--c-blue); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -4px; margin-right: 8px; }
@@ -446,6 +452,12 @@ button, input, textarea { font: inherit; }
 /* ---------- Pied de page ---------- */
 .footer { background: var(--c-navy); color: rgba(255,255,255,.65); font-size: .88rem; padding: 26px 0 calc(26px + env(safe-area-inset-bottom)); }
 .footer__inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.footer__links a { color: inherit; }
+.footer__links a:hover { color: var(--c-yellow); }
+.accept { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0 16px; font-size: .92rem; cursor: pointer; }
+.accept input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--c-blue); }
+.accept.is-invalid { color: var(--c-error); }
+.accept a, .consent a { color: var(--c-blue); }
 
 /* ---------- CTA fixe mobile ---------- */
 .sticky-cta {

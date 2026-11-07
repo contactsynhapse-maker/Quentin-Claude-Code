@@ -22,12 +22,12 @@ toutnet/
 
 - **Accueil** : logo, accroche du flyer, boutons « Réserver » et « Voir les tarifs ».
 - **Avantages** : service mobile, deux formules, tarifs dégressifs, réservation en ligne.
-- **Formules** : Formule 1 (Aspiration à sec) et Formule 2 (Nettoyage complet par extraction, recommandée), avec leur prix indicatif ; options Véhicule sale +10 €, Véhicule très sale +20 € (supplément ajusté sur place) et Poils d'animaux +15 €.
+- **Formules** : Formule 1 (Aspiration à sec) et Formule 2 (Nettoyage complet par extraction, recommandée), avec leur prix indicatif ; options Véhicule très sale +20 € (supplément ajusté sur place) et Poils d'animaux +15 €.
 - **Tarifs** : fourchettes de prix selon le véhicule (dont Véhicule commercial 90–120 €), packs Famille −10 % et Flotte entreprise −15 %.
 - **Avant / Après** : curseur de comparaison sur des photos recalées (banquette, coffre).
 - **Réservation**, en 4 étapes :
   1. **Véhicules** : un onglet par véhicule (type, formule avec le prix ou le supplément affiché, options), et un récapitulatif chiffré ligne par ligne (formule, chaque option, sous-total, remise Famille, durée, prix estimé) ;
-  2. **Adresse et créneau** : un calendrier façon Planity (un jour par colonne) qui ne montre que les heures où Quentin est disponible, trajet compris ;
+  2. **Adresse et créneau** : un calendrier façon Planity (un jour par colonne) qui ne montre que les heures où Quentin est disponible, trajet compris ; l'heure choisie et toute la durée de l'intervention s'affichent en bleu ;
   3. **Coordonnées** : prénom, nom, téléphone, e-mail, précisions ;
   4. **Récapitulatif** complet, puis **Valider ma demande** : le client arrive sur une page de confirmation (« Quentin vous recontacte rapidement »), avec un bouton « Retour au site ». Quentin reçoit la demande par e-mail sur tout.net81@gmail.com.
 - **Contact** : appel, WhatsApp, SMS, e-mail, Instagram (tout.net81).
@@ -35,7 +35,10 @@ toutnet/
 Tant que le service Google n'est pas installé (`apiUrl` vide dans `config.js`), le site est en **mode aperçu** : le calendrier montre des créneaux d'exemple (signalés comme tels) et aucune demande n'est envoyée.
 
 ### Calcul du prix estimé
-Pour chaque véhicule : prix de la formule choisie (`vehicules[].prix` dans `config.js`), plus les options cochées. Puis la remise Famille (−10 %, de 2 à 4 véhicules). La remise Flotte (−15 %) n'est pas déduite automatiquement, et les frais de déplacement ne sont jamais affichés.
+Pour chaque véhicule : prix de la formule choisie (`vehicules[].prix` dans `config.js`), plus les options cochées. Puis la remise Famille (−10 %, de 2 à 4 véhicules) ou Flotte (−15 %, à partir de 5 véhicules). Les frais de déplacement ne sont jamais affichés.
+
+## Informations légales
+La page `site/mentions-legales.html` regroupe les mentions légales, la politique de confidentialité et les conditions de réservation. Les champs surlignés en jaune **[À COMPLÉTER]** doivent être remplis avant la mise en ligne publique : nom de l'entrepreneur, adresse, SIRET, régime de TVA, conditions d'annulation et de paiement, médiateur de la consommation. Avant d'envoyer sa demande, le client coche une case d'acceptation des conditions.
 
 ## Modifier le site
 
