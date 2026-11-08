@@ -17,7 +17,7 @@ window.SITE_CONFIG = {
 
   /* Soulignage en pointillés des contenus encore provisoires.
      Passer à `false` quand tout sera rempli. */
-  afficherReperes: true,
+  afficherReperes: false,
 
   /* ------------------------------------------------------------------
      IDENTITÉ
