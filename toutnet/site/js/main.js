@@ -156,7 +156,7 @@
     if (isFinite(prixMin)) {
       from.appendChild(document.createTextNode("À partir de "));
       from.appendChild(el("strong", { text: euros(prixMin) }));
-      from.appendChild(document.createTextNode(" TTC · " + ((C.contact || {}).zone || "")));
+      from.appendChild(document.createTextNode(" · " + ((C.contact || {}).zone || "")));
     }
 
     var slogan = $("[data-slogan]");
@@ -225,7 +225,7 @@
 
   function renderTarifs() {
     var table = $("[data-tarifs]");
-    table.appendChild(el("div", { class: "price-table__head", text: "Tarif selon le véhicule (TTC)" }));
+    table.appendChild(el("div", { class: "price-table__head", text: "Tarif selon le véhicule" }));
     (C.vehicules || []).forEach(function (v) {
       table.appendChild(el("div", { class: "price-row" }, [
         el("span", { class: "price-row__name" }, [v.nom, v.note ? el("small", { text: v.note }) : null]),

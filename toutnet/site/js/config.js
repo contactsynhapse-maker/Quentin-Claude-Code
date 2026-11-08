@@ -69,7 +69,7 @@ window.SITE_CONFIG = {
   ],
 
   /* ------------------------------------------------------------------
-     TYPES DE VÉHICULES & PRIX (TTC)
+     TYPES DE VÉHICULES & PRIX (nets, TVA non applicable)
      prixMin / prixMax : fourchette affichée dans « Tarifs » (flyer).
      prix : prix de chaque formule pour ce véhicule, utilisé pour
             l'estimation. La différence s'affiche à côté de la formule.
@@ -162,7 +162,7 @@ window.SITE_CONFIG = {
     maxVehicules: 10,
 
     // Texte affiché sous l'estimation de prix.
-    mentionEstimation: "Prix estimé TTC. Les suppléments liés à l'état du véhicule sont confirmés sur place par Quentin.",
+    mentionEstimation: "Prix estimé, net de TVA (TVA non applicable, art. 293 B du CGI). Les suppléments liés à l'état du véhicule sont confirmés sur place par Quentin.",
 
     // Aperçu : si apiUrl est vide et demo: true, des créneaux d'EXEMPLE
     // sont affichés et aucune demande n'est envoyée. Ignoré quand apiUrl
