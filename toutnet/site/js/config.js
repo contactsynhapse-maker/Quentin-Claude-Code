@@ -157,16 +157,17 @@ window.SITE_CONFIG = {
     // Tant qu'elle est vide, le site fonctionne en mode « demande » :
     // le client indique une date souhaitée et envoie sa demande par
     // e-mail / WhatsApp / SMS, sans réservation automatique.
-    apiUrl: "",
+    apiUrl: "https://script.google.com/macros/s/AKfycbyVCNiqCCCizPIZSSZzECPHeixDhsVzsU8yQijoQPBfDQrzUivJ86G1B5UaT-itEkTPqg/exec",
 
     maxVehicules: 10,
 
     // Texte affiché sous l'estimation de prix.
     mentionEstimation: "Prix estimé TTC. Les suppléments liés à l'état du véhicule sont confirmés sur place par Quentin.",
 
-    // Aperçu : tant que apiUrl est vide, des créneaux d'EXEMPLE sont
-    // affichés (tous les jours, 8 h – 18 h) et aucune demande n'est envoyée.
-    demo: true,
+    // Aperçu : si apiUrl est vide et demo: true, des créneaux d'EXEMPLE
+    // sont affichés et aucune demande n'est envoyée. Ignoré quand apiUrl
+    // est renseignée.
+    demo: false,
 
     // Durées d'intervention (minutes), utilisées pour afficher la durée
     // estimée tant que le service Google n'est pas installé. Une fois
