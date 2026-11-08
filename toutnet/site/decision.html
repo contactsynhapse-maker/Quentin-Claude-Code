@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Demande de réservation — Tout'Net</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: linear-gradient(160deg, var(--c-blue) 0%, var(--c-blue-deep) 100%); min-height: 100vh; }
+    .dec { max-width: 620px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+    .dec__card { background: var(--c-white); border-radius: calc(var(--radius) + 4px); padding: clamp(22px, 6vw, 40px); box-shadow: var(--shadow-lg); }
+    .dec__logo { width: 72px; height: auto; margin: 0 auto 10px; }
+    .dec h1 { font-size: clamp(1.4rem, 5vw, 1.9rem); text-align: center; margin-bottom: 18px; }
+    .dec__list { list-style: none; padding: 0; margin: 0 0 22px; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
+    .dec__list li { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--c-line); }
+    .dec__list li:last-child { border-bottom: 0; }
+    .dec__list span { color: var(--c-muted); font-size: .9rem; }
+    .dec__list strong { font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
+    .dec__list a { color: var(--c-blue); }
+    .dec__actions { display: grid; gap: 10px; }
+    .btn--green { background: var(--c-success); color: var(--c-white); }
+    .btn--red { background: var(--c-error); color: var(--c-white); }
+    .dec__note { color: var(--c-muted); font-size: .88rem; text-align: center; margin: 12px 0 0; }
+    .dec__msg { text-align: center; }
+    .dec__msg p { color: var(--c-muted); }
+    .dec__icon { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 14px; color: var(--c-white); font-size: 2rem; font-weight: 800; }
+    @media (max-width: 480px) { .dec__list li { grid-template-columns: 1fr; gap: 2px; } }
+  </style>
+</head>
+<body>
+  <main class="dec">
+    <div class="dec__card">
+      <img class="dec__logo" src="assets/logo.png" alt="Tout'Net" width="72" height="81">
+      <div id="contenu" aria-live="polite"><p class="dec__note"><span class="spinner" aria-hidden="true"></span>Chargement de la demande…</p></div>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var API = ((window.SITE_CONFIG || {}).reservation || {}).apiUrl || "";
+    var q = new URLSearchParams(location.search);
+    var ref = q.get("ref") || "", jeton = q.get("jeton") || "", choix = q.get("choix") === "refuser" ? "refuser" : "accepter";
+    var box = document.getElementById("contenu");
+
+    function el(tag, attrs, kids) {
+      var n = document.createElement(tag);
+      Object.keys(attrs || {}).forEach(function (k) { if (k === "text") n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); });
+      (kids || []).forEach(function (c) { if (c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+      return n;
+    }
+    function api(params) {
+      var qs = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
+      // credentials "omit" : aucun cookie Google n'est envoyé, quel que soit le compte connecté
+      return fetch(API + "?" + qs, { credentials: "omit", redirect: "follow" }).then(function (r) { return r.json(); });
+    }
+    function message(icone, couleur, titre, texte) {
+      box.textContent = "";
+      box.appendChild(el("div", { class: "dec__msg" }, [
+        el("div", { class: "dec__icon", style: "background:" + couleur, text: icone }),
+        el("h1", { text: titre }),
+        texte ? el("p", { text: texte }) : null,
+      ]));
+    }
+    function ligne(label, valeur, lien) {
+      if (!valeur) return null;
+      return el("li", null, [el("span", { text: label }), lien ? el("strong", null, [el("a", { href: lien, text: valeur })]) : el("strong", { text: valeur })]);
+    }
+
+    if (!API || !ref || !jeton) { message("!", "var(--c-error)", "Lien incomplet", "Ouvrez le lien directement depuis l'e-mail de demande."); return; }
+
+    api({ action: "demande", ref: ref, jeton: jeton }).then(function (res) {
+      if (!res.ok) { message("!", "var(--c-error)", "Lien invalide", res.message || ""); return; }
+      var d = res.demande;
+      box.textContent = "";
+      if (d.statut !== "En attente") {
+        box.appendChild(el("h1", { text: "Demande déjà traitée" }));
+        box.appendChild(el("p", { class: "dec__note", text: "Statut actuel : " + d.statut + "." }));
+      } else {
+        box.appendChild(el("h1", { text: choix === "accepter" ? "Accepter ce rendez-vous ?" : "Refuser ce rendez-vous ?" }));
+      }
+      box.appendChild(el("ul", { class: "dec__list" }, [
+        ligne("Date", d.date + " à " + d.heure + (d.fin ? " (fin estimée " + d.fin + ")" : "")),
+        ligne("Client", d.client),
+        ligne("Téléphone", d.telephone, "tel:" + String(d.telephone).replace(/\s/g, "")),
+        ligne("Adresse", d.adresse, "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(d.adresse)),
+        ligne("Véhicules", d.vehicules),
+        ligne("Estimation", d.estimation),
+        ligne("Précisions", d.remarques),
+        ligne("Référence", d.reference),
+      ]));
+      if (d.statut !== "En attente") return;
+      var btn = el("button", { type: "button", class: "btn btn--large btn--block " + (choix === "accepter" ? "btn--green" : "btn--red") },
+        [choix === "accepter" ? "✅ Confirmer l'acceptation" : "❌ Confirmer le refus"]);
+      var autre = el("a", { class: "btn btn--outline btn--block", href: "?ref=" + encodeURIComponent(ref) + "&jeton=" + encodeURIComponent(jeton) + "&choix=" + (choix === "accepter" ? "refuser" : "accepter") },
+        [choix === "accepter" ? "Plutôt refuser" : "Plutôt accepter"]);
+      box.appendChild(el("div", { class: "dec__actions" }, [btn, autre]));
+      box.appendChild(el("p", { class: "dec__note", text: choix === "accepter"
+        ? "Le client recevra un e-mail de confirmation et le rendez-vous passera au vert dans l'agenda."
+        : "Le créneau sera libéré et le client prévenu par e-mail." }));
+      btn.addEventListener("click", function () {
+        btn.disabled = true; btn.textContent = "Envoi…";
+        api({ action: "decider", ref: ref, jeton: jeton, choix: choix }).then(function (r) {
+          if (r.ok && choix === "accepter") message("✓", "var(--c-success)", "Rendez-vous confirmé", "Le client a été prévenu par e-mail. Le rendez-vous apparaît en vert dans l'agenda.");
+          else if (r.ok) message("✓", "var(--c-muted)", "Demande refusée", "Le créneau est libéré et le client a été prévenu par e-mail.");
+          else message("!", "var(--c-error)", "Action impossible", r.message || "");
+        }).catch(function () { btn.disabled = false; btn.textContent = "Réessayer"; });
+      });
+    }).catch(function () {
+      message("!", "var(--c-error)", "Connexion impossible", "Vérifiez la connexion internet puis rechargez la page.");
+    });
+  })();
+  </script>
+</body>
+</html>

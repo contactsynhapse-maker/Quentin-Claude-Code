@@ -23,6 +23,9 @@
  */
 
 var TZ = "Europe/Paris";
+// Adresse du site (utilisée pour les boutons Accepter / Refuser des e-mails)
+// si le réglage « site_web » est vide.
+var SITE_DEFAUT = "https://contactsynhapse-maker.github.io/toutnet/";
 var FEUILLE_RESA = "Réservations";
 var FEUILLE_REGLAGES = "Réglages";
 var FEUILLE_DUREES = "Durées";
@@ -82,6 +85,8 @@ function doGet(e) {
   try {
     if (p.action === "durees") return json({ ok: true, durees: lireDurees() });
     if (p.action === "disponibilites") return json(disponibilites(JSON.parse(p.vehicules || "[]"), p.adresse || ""));
+    if (p.action === "demande") return json(infoDemande(p));
+    if (p.action === "decider") return json(decider(p));
     if (p.action === "decision") return pageDecision(p);
     return json({ ok: true, service: "Tout'Net — réservation" });
   } catch (err) {
@@ -254,7 +259,7 @@ function pageDecision(p) {
     return page("Déjà traitée", "<p>Cette demande a déjà été traitée : <strong>" + esc(resa.statut) + "</strong>.</p>" + blocResa(resa));
   }
   if (p.confirmer !== "1") {
-    var url = urlDecision(resa, choix) + "&confirmer=1";
+    var url = urlDecisionScript(resa, choix) + "&confirmer=1";
     var couleur = choix === "accepter" ? "#12a150" : "#d92d20";
     var texte = choix === "accepter" ? "✅ Confirmer l'acceptation" : "❌ Confirmer le refus";
     return page(choix === "accepter" ? "Accepter ce rendez-vous ?" : "Refuser ce rendez-vous ?",
@@ -264,6 +269,32 @@ function pageDecision(p) {
   appliquerDecision(resa, choix);
   return page(choix === "accepter" ? "Rendez-vous confirmé ✅" : "Demande refusée",
     "<p>" + (choix === "accepter" ? "Le client a été prévenu par e-mail. Le rendez-vous apparaît en vert dans l'agenda." : "Le créneau est libéré et le client a été prévenu par e-mail.") + "</p>" + blocResa(resa));
+}
+
+/* Résumé d'une demande pour la page de décision du site (jeton obligatoire). */
+function infoDemande(p) {
+  var resa = lireReservation(p.ref);
+  if (!resa || !p.jeton || resa.jeton !== p.jeton) return { ok: false, erreur: "lien_invalide", message: "Demande introuvable ou lien invalide." };
+  return { ok: true, demande: {
+    reference: resa.reference, statut: resa.statut, date: dateFr(resa.date), heure: resa.heure, fin: resa.fin,
+    client: resa.prenom + " " + resa.nom, telephone: resa.telephone, email: resa.email,
+    adresse: resa.rue + ", " + resa.cp + " " + resa.ville, vehicules: resa.vehicules,
+    estimation: resa.estimation || "", remarques: resa.remarques || "",
+  } };
+}
+function decider(p) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var resa = lireReservation(p.ref);
+    if (!resa || !p.jeton || resa.jeton !== p.jeton) return { ok: false, erreur: "lien_invalide", message: "Demande introuvable ou lien invalide." };
+    if (resa.statut !== STATUT.ATTENTE) return { ok: false, erreur: "deja_traitee", statut: resa.statut, message: "Demande déjà traitée : " + resa.statut + "." };
+    var choix = p.choix === "refuser" ? "refuser" : "accepter";
+    appliquerDecision(resa, choix);
+    return { ok: true, statut: resa.statut };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function appliquerDecision(resa, choix) {
@@ -503,7 +534,17 @@ function descriptionAgenda(ref, c, adresse, resume, d, jeton) {
     "Adresse : " + adresse, "", resume.join("\n"), "", "Estimation : " + ((d.estimation && d.estimation.texte) || "—"),
     d.remarques ? "Précisions : " + d.remarques : ""].join("\n");
 }
+/* Lien des boutons Accepter / Refuser : une page du site Tout'Net qui
+   appelle ce service sans passer par le compte Google du navigateur
+   (une page Google échoue quand plusieurs comptes Google sont connectés). */
 function urlDecision(resa, choix) {
+  var base = String(lireReglages().site_web || SITE_DEFAUT).trim();
+  if (base.slice(-1) !== "/") base += "/";
+  return base + "decision.html?ref=" + encodeURIComponent(resa.reference) +
+    "&jeton=" + encodeURIComponent(resa.jeton) + "&choix=" + choix;
+}
+/* Ancienne page Google (secours) */
+function urlDecisionScript(resa, choix) {
   return ScriptApp.getService().getUrl() + "?action=decision&ref=" + encodeURIComponent(resa.reference) +
     "&jeton=" + encodeURIComponent(resa.jeton) + "&choix=" + choix;
 }
