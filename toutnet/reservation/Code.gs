@@ -406,7 +406,9 @@ function installer() {
   }
   if (!R.email_notification) ecrireReglage("email_notification", Session.getEffectiveUser().getEmail());
 
-  try { SpreadsheetApp.getUi().alert("Installation terminée ✅\n\nDeux agendas « Tout'Net » ont été créés dans Google Agenda.\nÉtape suivante : déployer l'application Web (voir le guide)."); } catch (e) {}
+  // Message non bloquant (une alerte attendrait un clic dans la feuille quand on lance depuis l'éditeur)
+  console.log("Installation terminée : onglets Réservations / Réglages / Durées et deux agendas Tout'Net créés.");
+  try { ss.toast("Deux agendas « Tout'Net » ont été créés dans Google Agenda. Étape suivante : déployer l'application Web.", "Installation terminée ✅", 15); } catch (e) {}
 }
 
 /* =====================================================================
