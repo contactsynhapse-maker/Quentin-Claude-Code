@@ -142,8 +142,8 @@
     }
   }
 
-  function choice(type, name, value, checked, title, desc, price) {
-    return el("label", { class: "choice choice--" + type }, [
+  function choice(type, name, value, checked, title, desc, price, image) {
+    return el("label", { class: "choice choice--" + type + (image ? " choice--img" : "") }, [
       el("input", { type: type, name: name, value: value, checked: checked }),
       el("span", { class: "choice__box" }, [
         el("span", { class: "choice__mark", "aria-hidden": "true" }),
@@ -152,6 +152,7 @@
           desc ? el("span", { class: "choice__desc", text: desc }) : null,
         ]),
         price ? el("span", { class: "choice__price", text: price }) : null,
+        image ? el("span", { class: "choice__img" }, [el("img", { src: image, alt: "", loading: "lazy", width: "640", height: "280" })]) : null,
       ]),
     ]);
   }
@@ -167,7 +168,7 @@
 
     panelBox.appendChild(el("span", { class: "group-label", text: "Type de véhicule" }));
     panelBox.appendChild(el("div", { class: "choices", "data-field": "type" }, (C.vehicules || []).map(function (t) {
-      return choice("radio", "type-" + v.uid, t.id, v.type === t.id, t.nom, t.note || "", Site.fourchette(t.prixMin, t.prixMax));
+      return choice("radio", "type-" + v.uid, t.id, v.type === t.id, t.nom, t.note || "", Site.fourchette(t.prixMin, t.prixMax), t.image);
     })));
 
     panelBox.appendChild(el("span", { class: "group-label" }, ["Formule ", type ? null : el("small", { text: "(choisissez d'abord le type pour voir les prix)" })]));

@@ -71,18 +71,19 @@ window.SITE_CONFIG = {
   /* ------------------------------------------------------------------
      TYPES DE VÉHICULES & PRIX (nets, TVA non applicable)
      prixMin / prixMax : fourchette affichée dans « Tarifs » (flyer).
+     image : photo affichée sous le nom (assets/vehicules/…), facultative.
      prix : prix de chaque formule pour ce véhicule, utilisé pour
             l'estimation. La différence s'affiche à côté de la formule.
             Règle de départ : formule 2 = prixMax − 20 € (le « très sale »
             à +20 € complète la fourchette). À VALIDER / AJUSTER.
      ------------------------------------------------------------------ */
   vehicules: [
-    { id: "citadine",   nom: "Citadine",            prixMin: 90,  prixMax: 130, prix: { "formule-1": 90,  "formule-2": 110 } },
-    { id: "break-suv",  nom: "Break · SUV",         prixMin: 90,  prixMax: 140, prix: { "formule-1": 90,  "formule-2": 120 } },
-    { id: "7-places",   nom: "7 places (van)",      prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
-    { id: "camion",     nom: "Camion",              prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
-    { id: "utilitaire", nom: "Utilitaire",          prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 }, note: "Prix en fonction du véhicule" },
-    { id: "commercial", nom: "Véhicule commercial", prixMin: 90,  prixMax: 120, prix: { "formule-1": 90,  "formule-2": 100 }, note: "Prix variable selon la propreté" },
+    { id: "citadine",   nom: "Citadine",            image: "assets/vehicules/citadine.jpg",   prixMin: 90,  prixMax: 130, prix: { "formule-1": 90,  "formule-2": 110 } },
+    { id: "break-suv",  nom: "Break · SUV",         image: "assets/vehicules/break-suv.jpg",  prixMin: 90,  prixMax: 140, prix: { "formule-1": 90,  "formule-2": 120 } },
+    { id: "7-places",   nom: "7 places (van)",      image: "assets/vehicules/7-places.jpg",   prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
+    { id: "camion",     nom: "Camion",              image: "assets/vehicules/camion.jpg",     prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 } },
+    { id: "utilitaire", nom: "Utilitaire",          image: "assets/vehicules/utilitaire.jpg", prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 130 }, note: "Prix en fonction du véhicule" },
+    { id: "commercial", nom: "Véhicule commercial", image: "",                                prixMin: 90,  prixMax: 120, prix: { "formule-1": 90,  "formule-2": 100 }, note: "Prix variable selon la propreté" },
   ],
 
   /* ------------------------------------------------------------------
