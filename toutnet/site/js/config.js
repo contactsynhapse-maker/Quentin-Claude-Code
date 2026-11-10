@@ -141,21 +141,24 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------------
      ZONE D'INTERVENTION (carte)
-     centre : point de départ de Quentin. rayonKm : rayon du cercle.
-     villes : repères affichés sur la carte. communes : liste affichée
-     sous la carte, par département (indicative, non exhaustive).
+     La zone affichée est une seule forme qui englobe :
+       - un cercle de `rayonKm` autour du point de départ (centre),
+       - un cercle plus petit autour de chaque lieu de `extensions`.
+     villes : repères affichés sur la carte et villes citées dans le texte
+              (etiquetteMobile : côté de l'étiquette sur téléphone, facultatif).
      ------------------------------------------------------------------ */
   zone: {
     centre: { nom: "Lavaur", lat: 43.6986, lng: 1.8186 },
     rayonKm: 45,
+    extensions: [
+      { nom: "Lacaune", lat: 43.7083, lng: 2.6917, rayonKm: 20 },
+    ],
     villes: [
       { nom: "Toulouse", lat: 43.6047, lng: 1.4442 },
-      { nom: "Albi",     lat: 43.9289, lng: 2.1464 },
+      { nom: "Albi",     lat: 43.9289, lng: 2.1464, etiquetteMobile: "right" },
+      { nom: "Gaillac",  lat: 43.9016, lng: 1.8970 },
       { nom: "Castres",  lat: 43.6060, lng: 2.2400 },
-    ],
-    communes: [
-      { departement: "Tarn (81)", liste: ["Lavaur", "Albi", "Castres", "Gaillac", "Graulhet", "Saint-Sulpice-la-Pointe", "Rabastens", "Lisle-sur-Tarn", "Réalmont", "Lautrec", "Puylaurens", "Soual", "Labruguière", "Saint-Paul-Cap-de-Joux"] },
-      { departement: "Haute-Garonne (31)", liste: ["Toulouse", "Balma", "L'Union", "Saint-Jean", "Saint-Orens-de-Gameville", "Ramonville-Saint-Agne", "Blagnac", "Colomiers", "Tournefeuille", "Castelmaurou", "Verfeil", "Montastruc-la-Conseillère", "Bessières", "Villemur-sur-Tarn", "Caraman", "Villefranche-de-Lauragais", "Revel"] },
+      { nom: "Lacaune",  lat: 43.7083, lng: 2.6917 },
     ],
   },
 
