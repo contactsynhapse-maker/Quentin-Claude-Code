@@ -149,7 +149,7 @@ window.SITE_CONFIG = {
      ------------------------------------------------------------------ */
   zone: {
     centre: { nom: "Lavaur", lat: 43.6986, lng: 1.8186 },
-    rayonKm: 45,
+    rayonKm: 42,
     extensions: [
       { nom: "Lacaune", lat: 43.7083, lng: 2.6917, rayonKm: 20 },
     ],

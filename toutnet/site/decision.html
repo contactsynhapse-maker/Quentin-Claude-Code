@@ -24,6 +24,11 @@
     .dec__actions { display: grid; gap: 10px; }
     .btn--green { background: var(--c-success); color: var(--c-white); }
     .btn--red { background: var(--c-error); color: var(--c-white); }
+    .dec__msgbox { display: grid; gap: 6px; margin: 0 0 16px; }
+    .dec__msglabel { font-weight: 700; font-size: .95rem; }
+    .dec__msgbox textarea { font: inherit; font-size: 16px; padding: 12px 14px; border: 2px solid var(--c-line); border-radius: var(--radius-sm); resize: vertical; width: 100%; }
+    .dec__msgbox textarea:focus { outline: none; border-color: var(--c-blue); }
+    .dec__hint { color: var(--c-muted); font-size: .82rem; }
     .dec__note { color: var(--c-muted); font-size: .88rem; text-align: center; margin: 12px 0 0; }
     .dec__msg { text-align: center; }
     .dec__msg p { color: var(--c-muted); }
@@ -58,6 +63,10 @@
       var qs = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
       // credentials "omit" : aucun cookie Google n'est envoyé, quel que soit le compte connecté
       return fetch(API + "?" + qs, { credentials: "omit", redirect: "follow" }).then(function (r) { return r.json(); });
+    }
+    function apiPost(data) {
+      return fetch(API, { method: "POST", credentials: "omit", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json(); });
     }
     function message(icone, couleur, titre, texte) {
       box.textContent = "";
@@ -95,6 +104,17 @@
         ligne("Référence", d.reference),
       ]));
       if (d.statut !== "En attente") return;
+      // Message personnel ajouté à l'e-mail envoyé au client
+      var prenom = String(d.client || "").split(" ")[0];
+      var zone = el("label", { class: "dec__msgbox" }, [
+        el("span", { class: "dec__msglabel", text: choix === "refuser" ? "Message pour " + prenom + " (proposez un autre moment)" : "Message pour " + prenom + " (facultatif)" }),
+        el("textarea", { id: "message", rows: choix === "refuser" ? "6" : "3", maxlength: "2000",
+          placeholder: choix === "refuser"
+            ? "Ex. : Bonjour " + prenom + ", je ne suis malheureusement pas disponible le " + d.date + " à " + d.heure + ". Je peux vous proposer samedi prochain à 10 h ou dimanche à 14 h. Dites-moi ce qui vous arrange !"
+            : "Ex. : Merci pour votre confiance, j'arriverai vers " + d.heure + ". Pensez à laisser l'accès au véhicule." }),
+        el("span", { class: "dec__hint", text: "Ce texte est ajouté à l'e-mail envoyé au client. Laissez vide pour envoyer l'e-mail standard." }),
+      ]);
+      box.appendChild(zone);
       var btn = el("button", { type: "button", class: "btn btn--large btn--block " + (choix === "accepter" ? "btn--green" : "btn--red") },
         [choix === "accepter" ? "✅ Confirmer l'acceptation" : "❌ Confirmer le refus"]);
       var autre = el("a", { class: "btn btn--outline btn--block", href: "?ref=" + encodeURIComponent(ref) + "&jeton=" + encodeURIComponent(jeton) + "&choix=" + (choix === "accepter" ? "refuser" : "accepter") },
@@ -105,7 +125,8 @@
         : "Le créneau sera libéré et le client prévenu par e-mail." }));
       btn.addEventListener("click", function () {
         btn.disabled = true; btn.textContent = "Envoi…";
-        api({ action: "decider", ref: ref, jeton: jeton, choix: choix }).then(function (r) {
+        var mot = (document.getElementById("message") || {}).value || "";
+        apiPost({ action: "decider", ref: ref, jeton: jeton, choix: choix, message: mot.trim() }).then(function (r) {
           if (r.ok && choix === "accepter") message("✓", "var(--c-success)", "Rendez-vous confirmé", "Le client a été prévenu par e-mail. Le rendez-vous apparaît en vert dans l'agenda.");
           else if (r.ok) message("✓", "var(--c-muted)", "Demande refusée", "Le créneau est libéré et le client a été prévenu par e-mail.");
           else message("!", "var(--c-error)", "Action impossible", r.message || "");

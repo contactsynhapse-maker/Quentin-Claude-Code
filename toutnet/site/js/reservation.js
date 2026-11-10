@@ -366,8 +366,73 @@
     return { liste: liste, map: map };
   }
 
+  /* Aucun créneau (ou calendrier injoignable) : message clair + moyen de joindre Quentin */
+  function renderIndispo(kind) {
+    btnNext.hidden = true;
+    var box = el("div", { class: "indispo", role: "status" });
+    slotsBox.appendChild(box);
+    if (state.messageEnvoye) {
+      box.appendChild(el("p", { class: "indispo__titre", text: "Message envoyé ✓" }));
+      box.appendChild(el("p", { text: "Merci ! Quentin a bien reçu votre message et vous recontacte rapidement pour fixer votre rendez-vous." }));
+      return;
+    }
+    var erreur = kind === "erreur";
+    box.appendChild(el("p", { class: "indispo__titre", text: erreur ? "Le calendrier est momentanément indisponible" : "Aucun créneau disponible en ligne pour le moment" }));
+    box.appendChild(el("p", { text: erreur
+      ? "Laissez un message à Quentin : il vous recontacte rapidement pour fixer votre rendez-vous."
+      : "Quentin n'a pas encore ouvert de nouveaux créneaux. Laissez-lui un message : il vous recontacte rapidement pour fixer votre rendez-vous." }));
+
+    var e = Site.estimer(state.vehicules);
+    var formule = e.details.map(function (d) { return d.type.nom + (d.formule ? " · " + d.formule.nom : ""); }).join(" / ");
+    var texte = "Bonjour Quentin,\nje souhaiterais un rendez-vous pour : " + (formule || "nettoyage intérieur") + ".\nAdresse : " + adresse() + ".\nMes disponibilités : ";
+    box.appendChild(el("div", { class: "fields indispo__form" }, [
+      el("label", { class: "field" }, [el("span", { text: "Prénom" }), el("input", { type: "text", name: "msg_prenom", autocomplete: "given-name", value: val("prenom") || null })]),
+      el("label", { class: "field" }, [el("span", { text: "Téléphone" }), el("input", { type: "tel", name: "msg_tel", autocomplete: "tel", inputmode: "tel", value: val("telephone") || null })]),
+      el("label", { class: "field field--full" }, [el("span", null, ["E-mail ", el("small", { text: "(facultatif)" })]), el("input", { type: "email", name: "msg_email", autocomplete: "email", value: val("email") || null })]),
+      el("label", { class: "field field--full" }, [el("span", { text: "Votre message" }), (function () { var t = el("textarea", { name: "msg_texte", rows: "4" }); t.value = texte; return t; })()]),
+    ]));
+    var btn = el("button", { type: "button", class: "btn btn--accent", "data-envoyer-message": "" }, ["Envoyer mon message à Quentin"]);
+    var actions = el("div", { class: "indispo__actions" }, [btn]);
+    if (erreur) actions.appendChild(el("button", { type: "button", class: "btn btn--outline btn--small", "data-retry": "" }, ["Réessayer"]));
+    box.appendChild(actions);
+    box.appendChild(el("p", { class: "indispo__erreur", "data-msg-erreur": "", role: "alert" }));
+
+    var liens = Site.contactLinks().filter(function (l) { return l.id === "tel" || l.id === "sms" || l.id === "whatsapp"; });
+    if (liens.length) {
+      box.appendChild(el("p", { class: "indispo__ou", text: "Ou contactez Quentin directement" + (TEL ? " au " + TEL : "") + " :" }));
+      box.appendChild(el("div", { class: "send-buttons" }, liens.map(function (l) { return Site.linkButton(l, "btn--outline btn--small"); })));
+    }
+  }
+
+  function envoyerMessage(btn) {
+    var err = slotsBox.querySelector("[data-msg-erreur]");
+    var prenom = val("msg_prenom"), tel = val("msg_tel"), email = val("msg_email"), texte = val("msg_texte");
+    var bad = [];
+    if (!prenom) bad.push("msg_prenom");
+    if (tel.replace(/\D/g, "").length < 10 && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) bad.push("msg_tel");
+    if (!texte) bad.push("msg_texte");
+    if (bad.length) { marquer(bad); err.textContent = "Indiquez votre prénom et un téléphone (ou un e-mail) pour que Quentin puisse vous répondre."; return; }
+    err.textContent = "";
+    btn.disabled = true; btn.textContent = "Envoi…";
+    var e = Site.estimer(state.vehicules);
+    var payload = { action: "message", prenom: prenom, telephone: tel, email: email, message: texte, adresse: adresse(), website: val("website"),
+      formule: e.details.map(function (d) { return d.type.nom + (d.formule ? " · " + d.formule.nom : ""); }).join(" / ") };
+    var envoi = API
+      ? fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload), redirect: "follow" }).then(function (r) { return r.json(); })
+      : new Promise(function (res) { setTimeout(function () { res({ ok: true }); }, 400); });
+    envoi.then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.message) || "Erreur");
+      state.messageEnvoye = true;
+      renderSlots();
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = "Envoyer mon message à Quentin";
+      err.textContent = "L'envoi n'a pas abouti. Utilisez les boutons ci-dessous pour joindre Quentin directement.";
+    });
+  }
+
   function renderSlots() {
     slotsBox.textContent = "";
+    if (state.step === 2) btnNext.hidden = false;
     if (DEMO) slotsBox.appendChild(el("p", { class: "demo-banner", text: "Aperçu : créneaux d'exemple. Les vraies disponibilités de Quentin s'afficheront ici une fois son agenda connecté." }));
     if (!API && !DEMO) {
       slotsBox.appendChild(el("p", { class: "slots__msg", text: "La réservation en ligne arrive bientôt. En attendant, contactez Tout'Net" + (TEL ? " au " + TEL : "") + "." }));
@@ -382,19 +447,10 @@
       slotsBox.appendChild(el("p", { class: "slots__msg" }, [el("span", { class: "spinner", "aria-hidden": "true" }), "Recherche des disponibilités…"]));
       return;
     }
-    if (d.erreur || !d.data) {
-      slotsBox.appendChild(el("div", { class: "slots__msg" }, [
-        el("p", { text: "Impossible de charger les disponibilités pour le moment." + (TEL ? " Vous pouvez aussi appeler Tout'Net au " + TEL + "." : "") }),
-        el("button", { type: "button", class: "btn btn--outline btn--small", "data-retry": "" }, ["Réessayer"]),
-      ]));
-      return;
-    }
+    if (d.erreur || !d.data) { renderIndispo("erreur"); return; }
     var data = d.data;
     var cal = joursCalendrier(data);
-    if (!cal.liste.length) {
-      slotsBox.appendChild(el("p", { class: "slots__msg", text: "Aucune disponibilité en ligne pour cette durée (" + formatDuree(data.duree) + ") dans les semaines à venir." + (TEL ? " Appelez Tout'Net au " + TEL + " pour trouver un créneau." : "") }));
-      return;
-    }
+    if (!cal.liste.length) { renderIndispo("vide"); return; }
 
     var cols = colonnes();
     var maxPage = Math.max(0, Math.ceil(cal.liste.length / cols) - 1);
@@ -408,7 +464,19 @@
     ]);
     var grid = el("div", { class: "cal__grid", style: "grid-template-columns:repeat(" + cols + ",minmax(0,1fr))" });
     var duree = data.duree || 0;
-    visibles.forEach(function (date) {
+    var vide = visibles.every(function (dt) { return !(cal.map[dt] || []).length; });
+    if (vide) {
+      // prochaine page qui contient au moins un créneau
+      var suivante = -1;
+      for (var pg = state.page + 1; pg <= maxPage && suivante < 0; pg++) {
+        if (cal.liste.slice(pg * cols, pg * cols + cols).some(function (dt) { return (cal.map[dt] || []).length; })) suivante = pg;
+      }
+      grid = el("div", { class: "cal__vide" }, [
+        el("p", { text: "Pas de créneau disponible sur ces dates." }),
+        suivante >= 0 ? el("button", { type: "button", class: "btn btn--primary btn--small", "data-goto": String(suivante) }, ["Voir les prochaines disponibilités ›"]) : null,
+      ]);
+    }
+    if (!vide) visibles.forEach(function (date) {
       var cr = cal.map[date] || [];
       var bloc = {}, fin = "";
       if (state.jour === date && state.heure && duree) {
@@ -454,6 +522,10 @@
     if (nav && !nav.disabled) { state.page += Number(nav.getAttribute("data-page")); renderSlots(); return; }
     var s = e.target.closest("[data-time]");
     if (s) { state.jour = s.getAttribute("data-date"); state.heure = s.getAttribute("data-time"); errorBox.textContent = ""; renderSlots(); return; }
+    var go = e.target.closest("[data-goto]");
+    if (go) { state.page = Number(go.getAttribute("data-goto")); renderSlots(); return; }
+    var envoi = e.target.closest("[data-envoyer-message]");
+    if (envoi) { envoyerMessage(envoi); return; }
     if (e.target.closest("[data-retry]")) chargerDispos(true);
   });
   ["rue", "cp", "ville"].forEach(function (n) {

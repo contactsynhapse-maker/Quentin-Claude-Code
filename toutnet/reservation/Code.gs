@@ -100,6 +100,8 @@ function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     if (data.action === "reserver") return json(reserver(data));
+    if (data.action === "decider") return json(decider(data));
+    if (data.action === "message") return json(envoyerMessage(data));
     return json({ ok: false, message: "Action inconnue" });
   } catch (err) {
     console.error(err);
@@ -290,14 +292,15 @@ function decider(p) {
     if (!resa || !p.jeton || resa.jeton !== p.jeton) return { ok: false, erreur: "lien_invalide", message: "Demande introuvable ou lien invalide." };
     if (resa.statut !== STATUT.ATTENTE) return { ok: false, erreur: "deja_traitee", statut: resa.statut, message: "Demande déjà traitée : " + resa.statut + "." };
     var choix = p.choix === "refuser" ? "refuser" : "accepter";
-    appliquerDecision(resa, choix);
+    var message = String(p.message || "").trim().slice(0, 2000);   // mot personnel de Quentin (facultatif)
+    appliquerDecision(resa, choix, message);
     return { ok: true, statut: resa.statut };
   } finally {
     lock.releaseLock();
   }
 }
 
-function appliquerDecision(resa, choix) {
+function appliquerDecision(resa, choix, message) {
   var R = lireReglages();
   var cal = agenda(R.agenda_rendezvous, "rendez-vous");
   var ev = null;
@@ -307,13 +310,43 @@ function appliquerDecision(resa, choix) {
     if (ev) { ev.setTitle("✅ " + resa.prenom + " " + resa.nom + " (" + resa.nbVehicules + " véh.)"); ev.setColor(CalendarApp.EventColor.GREEN); }
     sh.getRange(resa.ligne, COL["Statut"]).setValue(STATUT.CONFIRMEE);
     resa.statut = STATUT.CONFIRMEE;
-    emailClient(R, resa, "confirmee");
+    emailClient(R, resa, "confirmee", message);
   } else {
     if (ev) ev.deleteEvent();
     sh.getRange(resa.ligne, COL["Statut"]).setValue(STATUT.REFUSEE);
     resa.statut = STATUT.REFUSEE;
-    emailClient(R, resa, "refusee");
+    emailClient(R, resa, "refusee", message);
   }
+}
+
+/* Message d'un client quand aucun créneau n'est disponible en ligne */
+function envoyerMessage(d) {
+  if (d.website) return { ok: true };                                 // robot (champ piège rempli)
+  var prenom = String(d.prenom || "").trim().slice(0, 80);
+  var tel = String(d.telephone || "").trim().slice(0, 30);
+  var email = String(d.email || "").trim().slice(0, 120);
+  var texte = String(d.message || "").trim().slice(0, 3000);
+  if (!prenom) throw new Error("Prénom manquant.");
+  if (tel.replace(/\D/g, "").length < 10 && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error("Indiquez un téléphone ou un e-mail.");
+  if (!texte) throw new Error("Message vide.");
+  var R = lireReglages();
+  var to = R.email_notification || Session.getEffectiveUser().getEmail();
+  var ligne = function (k, v) { return v ? '<tr><td style="padding:6px 12px 6px 0;color:#5b6b8c;vertical-align:top">' + k + '</td><td style="padding:6px 0;font-weight:600">' + v + "</td></tr>" : ""; };
+  var html = gabarit("Message d'un client (pas de créneau disponible)",
+    "<p>Un client n'a trouvé aucun créneau disponible sur le site et vous a laissé ce message :</p>" +
+    '<div style="margin:12px 0;padding:14px 16px;background:#eef4fe;border-radius:10px;white-space:pre-line">' + esc(texte) + "</div>" +
+    '<table style="border-collapse:collapse;font-size:15px">' +
+      ligne("Prénom", esc(prenom)) +
+      ligne("Téléphone", tel ? '<a href="tel:' + esc(tel.replace(/\s/g, "")) + '">' + esc(tel) + "</a>" : "") +
+      ligne("E-mail", esc(email)) +
+      ligne("Formule", esc(d.formule || "")) +
+      ligne("Adresse", esc(d.adresse || "")) +
+    "</table><p style=\"color:#5b6b8c;font-size:13px\">Pensez à ajouter des disponibilités dans l'agenda « Tout'Net — Disponibilités ».</p>");
+  var opts = { to: to, subject: "📩 Message de " + prenom + " — aucun créneau disponible", htmlBody: html, name: R.nom_entreprise || "Tout'Net" };
+  if (email) opts.replyTo = email;
+  MailApp.sendEmail(opts);
+  try { envoyerSms(R, "Tout'Net : " + prenom + " vous a laissé un message (aucun créneau dispo). Voir vos e-mails."); } catch (e) {}
+  return { ok: true };
 }
 
 /* Menu dans la feuille : accepter / refuser la ligne sélectionnée */
@@ -355,16 +388,23 @@ function notifierQuentin(R, resa) {
     htmlBody: html, name: R.nom_entreprise || "Tout'Net", replyTo: resa.email });
 }
 
-function emailClient(R, resa, type) {
+function emailClient(R, resa, type, message) {
   var nom = R.nom_entreprise || "Tout'Net";
+  var site = String(R.site_web || SITE_DEFAUT);
   var contact = (R.telephone_entreprise ? "au " + esc(R.telephone_entreprise) : "") ;
   var titres = {
     recue: ["Votre demande a bien été reçue", "Bonjour " + esc(resa.prenom) + ",</p><p>Merci pour votre demande ! Votre créneau est réservé <strong>en attente de confirmation</strong>. Vous recevrez un e-mail dès qu'il sera validé."],
     confirmee: ["Votre rendez-vous est confirmé ✅", "Bonjour " + esc(resa.prenom) + ",</p><p>Bonne nouvelle : votre rendez-vous est <strong>confirmé</strong>. À bientôt !"],
-    refusee: ["Votre créneau n'a pas pu être retenu", "Bonjour " + esc(resa.prenom) + ",</p><p>Nous sommes désolés, le créneau demandé n'a pas pu être retenu. N'hésitez pas à choisir un autre créneau" + (R.site_web ? ' sur <a href="' + esc(R.site_web) + '">notre site</a>' : "") + " ou à nous contacter" + (contact ? " " + contact : "") + "."],
+    refusee: ["Votre créneau n'a pas pu être retenu", "Bonjour " + esc(resa.prenom) + ",</p><p>Le créneau du " + esc(dateFr(resa.date)) + " à " + esc(resa.heure) + " n'a malheureusement pas pu être retenu." +
+      (message ? "" : " N'hésitez pas à choisir un autre créneau sur <a href=\"" + esc(site) + "#reserver\">notre site</a> ou à nous contacter" + (contact ? " " + contact : "") + ".")],
   };
   var t = titres[type];
-  var html = gabarit(t[0], "<p>" + t[1] + "</p>" + (type === "refusee" ? "" : blocResa(resa)) +
+  // Message personnel de Quentin, ajouté tel quel (texte simple)
+  var mot = message ? '<div style="margin:18px 0;padding:14px 16px;background:#eef4fe;border-left:4px solid #1e6be6;border-radius:0 10px 10px 0">' +
+    '<div style="font-size:13px;font-weight:bold;color:#1e6be6;margin-bottom:6px">Message de Quentin</div>' +
+    '<div style="white-space:pre-line">' + esc(message) + "</div></div>" : "";
+  if (type === "refusee" && message) mot += '<p>Vous pouvez aussi choisir un autre créneau sur <a href="' + esc(site) + '#reserver">notre site</a>.</p>';
+  var html = gabarit(t[0], "<p>" + t[1] + "</p>" + mot + (type === "refusee" ? "" : blocResa(resa)) +
     "<p>Une question ? Répondez simplement à cet e-mail" + (contact ? " ou appelez-nous " + contact : "") + ".</p><p>L'équipe " + esc(nom) + "</p>");
   MailApp.sendEmail({ to: resa.email, subject: nom + " — " + t[0], htmlBody: html, name: nom,
     replyTo: R.email_notification || Session.getEffectiveUser().getEmail() });

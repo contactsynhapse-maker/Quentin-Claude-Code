@@ -428,6 +428,15 @@ button, input, textarea { font: inherit; }
 @keyframes remplir { from { opacity: 0; transform: scaleY(.4); } to { opacity: 1; transform: none; } }
 .cal__none { text-align: center; color: #b8c6e0; padding-top: 6px; }
 @media (max-width: 520px) { .cal__slot { font-size: .82rem; padding: 8px 0; } .cal__wd { font-size: .82rem; } .cal__grid { gap: 5px; } }
+.indispo { border: 2px solid var(--c-line); border-radius: var(--radius); padding: clamp(18px, 4vw, 26px); background: var(--c-white); }
+.indispo > p { margin: 0 0 10px; color: var(--c-muted); }
+.indispo .indispo__titre { font-size: 1.15rem; font-weight: 800; color: var(--c-navy); margin-bottom: 6px; }
+.indispo__form { margin: 16px 0 14px; }
+.indispo__actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.indispo .indispo__erreur { color: var(--c-error); font-weight: 600; min-height: 1.2em; margin: 8px 0 0; }
+.indispo .indispo__ou { margin: 14px 0 10px; padding-top: 14px; border-top: 1px solid var(--c-line); font-weight: 600; color: var(--c-navy); }
+.cal__vide { text-align: center; padding: 34px 16px; border: 1px dashed var(--c-line); border-radius: var(--radius-sm); color: var(--c-muted); }
+.cal__vide p { margin: 0 0 14px; font-weight: 600; }
 .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--c-line); border-top-color: var(--c-blue); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -4px; margin-right: 8px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
