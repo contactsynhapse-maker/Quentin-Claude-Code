@@ -1,6 +1,6 @@
 /* =====================================================================
    TOUT'NET — ZONE D'INTERVENTION
-   Carte Leaflet (hébergée dans vendor/leaflet) avec un cercle autour du
+   Carte Leaflet (hébergée dans vendor/leaflet), fond OpenStreetMap, avec un cercle autour du
    point de départ de Quentin. Réglages : SITE_CONFIG.zone (js/config.js).
    La carte n'est chargée que lorsque la section approche de l'écran.
    ===================================================================== */
@@ -59,9 +59,10 @@
       tap: false,
       zoomSnap: 0.25,
     });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd", maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    // Fond de carte OpenStreetMap (gratuit, sans clé) — attribution obligatoire
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a>',
     }).addTo(map);
 
     var centre = [Z.centre.lat, Z.centre.lng];
