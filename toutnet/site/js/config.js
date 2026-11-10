@@ -140,6 +140,26 @@ window.SITE_CONFIG = {
   ],
 
   /* ------------------------------------------------------------------
+     ZONE D'INTERVENTION (carte)
+     centre : point de départ de Quentin. rayonKm : rayon du cercle.
+     villes : repères affichés sur la carte. communes : liste affichée
+     sous la carte, par département (indicative, non exhaustive).
+     ------------------------------------------------------------------ */
+  zone: {
+    centre: { nom: "Lavaur", lat: 43.6986, lng: 1.8186 },
+    rayonKm: 45,
+    villes: [
+      { nom: "Toulouse", lat: 43.6047, lng: 1.4442 },
+      { nom: "Albi",     lat: 43.9289, lng: 2.1464 },
+      { nom: "Castres",  lat: 43.6060, lng: 2.2400 },
+    ],
+    communes: [
+      { departement: "Tarn (81)", liste: ["Lavaur", "Albi", "Castres", "Gaillac", "Graulhet", "Saint-Sulpice-la-Pointe", "Rabastens", "Lisle-sur-Tarn", "Réalmont", "Lautrec", "Puylaurens", "Soual", "Labruguière", "Saint-Paul-Cap-de-Joux"] },
+      { departement: "Haute-Garonne (31)", liste: ["Toulouse", "Balma", "L'Union", "Saint-Jean", "Saint-Orens-de-Gameville", "Ramonville-Saint-Agne", "Blagnac", "Colomiers", "Tournefeuille", "Castelmaurou", "Verfeil", "Montastruc-la-Conseillère", "Bessières", "Villemur-sur-Tarn", "Caraman", "Villefranche-de-Lauragais", "Revel"] },
+    ],
+  },
+
+  /* ------------------------------------------------------------------
      GALERIE AVANT / APRÈS
      Format : { titre: "", avant: "assets/photos/xxx-avant.jpg", apres: "assets/photos/xxx-apres.jpg" }
      Les deux photos doivent avoir exactement le même cadrage et la même

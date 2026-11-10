@@ -58,6 +58,7 @@
         <a href="#formules">Formules</a>
         <a href="#tarifs">Tarifs</a>
         <a href="#avant-apres">Avant / Après</a>
+        <a href="#zone">Zone</a>
         <a href="#contact">Contact</a>
         <a href="#reserver" class="btn btn--small btn--accent">Réserver</a>
       </nav>
@@ -136,6 +137,25 @@
           <p class="section__sub">Faites glisser le curseur pour révéler le résultat.</p>
         </div>
         <div class="gallery" data-galerie></div>
+      </div>
+    </section>
+
+    <!-- ============ ZONE D'INTERVENTION ============ -->
+    <section class="zone" id="zone">
+      <div class="zone__head">
+        <div class="container">
+          <p class="eyebrow eyebrow--light">Zone d'intervention</p>
+          <h2 data-zone-titre>Toulouse, Albi, Castres et alentours</h2>
+          <p class="zone__lead" data-zone-intro></p>
+        </div>
+      </div>
+      <div class="container zone__body">
+        <div class="zone__map-wrap">
+          <div class="zone__map" id="zone-carte" role="img" aria-label="Carte de la zone d'intervention de Tout'Net autour de Lavaur"></div>
+          <p class="zone__credit" data-zone-legende></p>
+        </div>
+        <div class="zone__communes" data-zone-communes></div>
+        <p class="zone__note" data-zone-note></p>
       </div>
     </section>
 
@@ -269,5 +289,6 @@
   <script src="js/config.js"></script>
   <script src="js/main.js"></script>
   <script src="js/reservation.js"></script>
+  <script src="js/zone.js"></script>
 </body>
 </html>
