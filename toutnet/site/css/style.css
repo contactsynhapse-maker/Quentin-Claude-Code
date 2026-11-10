@@ -200,7 +200,21 @@ button, input, textarea { font: inherit; }
 .formula__sub { color: var(--c-muted); margin-bottom: 18px; }
 .formula__price { display: inline-block; align-self: flex-start; font-weight: 800; color: var(--c-blue); background: var(--c-tint); padding: 4px 12px; border-radius: 999px; margin: -6px 0 18px; font-size: .92rem; }
 .formula--featured .formula__price { color: var(--c-navy); background: var(--c-yellow); }
-.formula ul { list-style: none; padding: 0; margin: 0 0 26px; display: grid; gap: 12px; }
+.formula__list { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 12px; }
+.formula__pitch { margin: -6px 0 18px; font-size: .95rem; line-height: 1.55; }
+.formula__prices { list-style: none; padding: 14px 0 0; margin: 0 0 22px; border-top: 1px solid var(--c-line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: .9rem; }
+.formula__prices li { display: flex; justify-content: space-between; gap: 8px; }
+.formula__prices span { color: var(--c-muted); }
+.formula__prices strong { font-weight: 800; color: var(--c-blue); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula--featured .formula__prices { border-top-color: rgba(255,255,255,.25); }
+.formula--featured .formula__prices span { color: rgba(255,255,255,.85); }
+.formula--featured .formula__prices strong { color: var(--c-yellow); font-size: 1rem; }
+.formula--featured .formula__pitch { color: var(--c-white); background: rgba(255,255,255,.1); border-left: 3px solid var(--c-yellow); padding: 10px 14px; border-radius: 0 10px 10px 0; }
+@media (min-width: 761px) {
+  .formulas { grid-template-columns: 1fr 1.15fr; align-items: center; }
+  .formula--featured { padding: 40px 34px 34px; transform: translateY(-4px); }
+}
+@media (max-width: 760px) { .formula--featured { order: -1; } }
 .formula li { display: flex; align-items: center; gap: 12px; font-weight: 500; }
 .check {
   width: 24px; height: 24px; border-radius: 50%; flex: none; background: var(--c-yellow) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230e2a5c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 14px no-repeat;
@@ -214,6 +228,7 @@ button, input, textarea { font: inherit; }
   font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px;
 }
 .extras { margin-top: 24px; display: grid; gap: 12px; }
+.extras__title { margin: 8px 0 0; color: var(--c-muted); font-size: .95rem; }
 .extra {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--c-tint);
   border-radius: var(--radius-sm); padding: 14px 18px;
@@ -342,6 +357,11 @@ button, input, textarea { font: inherit; }
 .choice__img { flex-basis: 100%; display: block; background: #fff; border-radius: 8px; overflow: hidden; margin-top: 2px; }
 .choice__img img { width: 100%; height: auto; aspect-ratio: 640 / 280; object-fit: contain; display: block; }
 .choice input:checked + .choice__box .choice__img { box-shadow: 0 0 0 2px rgba(30, 107, 230, .15); }
+.choice--reco .choice__box { border-color: var(--c-yellow); }
+.choice__reco { display: inline-block; background: var(--c-yellow); color: var(--c-navy); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-bottom: 4px; }
+.vtotal { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; margin: 16px 0 0; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--c-tint); }
+.vtotal span { font-weight: 600; color: var(--c-muted); }
+.vtotal strong { font-weight: 800; color: var(--c-navy); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .choice__price { font-weight: 800; color: var(--c-blue); font-size: .9rem; white-space: nowrap; }
 
 .estimate { margin-top: 28px; border-radius: var(--radius); background: var(--c-navy); color: var(--c-white); padding: 22px 24px; display: grid; gap: 14px; }

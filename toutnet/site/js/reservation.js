@@ -173,9 +173,13 @@
 
     panelBox.appendChild(el("span", { class: "group-label" }, ["Formule ", type ? null : el("small", { text: "(choisissez d'abord le type pour voir les prix)" })]));
     panelBox.appendChild(el("div", { class: "choices choices--2", "data-field": "formule" }, (C.formules || []).map(function (f, i) {
-      var prix = "";
-      if (type) prix = i === 0 ? euros(Site.prixFormule(type, f.id)) : plusOuPrix(Site.supplementFormule(type, f.id));
-      return choice("radio", "formule-" + v.uid, f.id, v.formule === f.id, f.nom, (f.etiquette || "") + (f.sousTitre ? " — " + f.sousTitre : ""), prix);
+      var prix = type ? euros(Site.prixFormule(type, f.id)) : "";
+      var c = choice("radio", "formule-" + v.uid, f.id, v.formule === f.id, f.nom, (f.etiquette || "") + (f.sousTitre ? " — " + f.sousTitre : ""), prix);
+      if (f.miseEnAvant) {
+        c.classList.add("choice--reco");
+        c.querySelector(".choice__body").insertBefore(el("span", { class: "choice__reco", text: "★ Recommandée" }), c.querySelector(".choice__name"));
+      }
+      return c;
     })));
 
     if (NIVEAUX.length) {
@@ -186,11 +190,13 @@
     }
 
     if ((C.options || []).length) {
-      panelBox.appendChild(el("span", { class: "group-label" }, ["Options ", el("small", { text: "(facultatif)" })]));
+      panelBox.appendChild(el("span", { class: "group-label" }, ["Options ", el("small", { text: "(facultatif, s'ajoute au prix de la formule)" })]));
       panelBox.appendChild(el("div", { class: "choices", "data-field": "options" }, C.options.map(function (o) {
         return choice("checkbox", "options-" + v.uid, o.id, v.options.indexOf(o.id) > -1, o.nom, o.description || "", o.prix ? "+" + euros(o.prix) : "");
       })));
     }
+
+    panelBox.appendChild(el("p", { class: "vtotal", "data-vtotal": "", "aria-live": "polite" }));
 
     if (state.vehicules.length < MAX) {
       panelBox.appendChild(el("p", { style: "margin:18px 0 0" }, [
@@ -199,9 +205,24 @@
     }
   }
 
+  /* Total du véhicule affiché : prix de la formule + chaque option */
+  function renderVTotal() {
+    var box = panelBox.querySelector("[data-vtotal]");
+    if (!box) return;
+    var e = Site.estimer(state.vehicules);
+    var d = e.details.filter(function (x) { return x.index === state.actif; })[0];
+    box.textContent = "";
+    if (!d || !d.formule) { box.hidden = true; return; }
+    box.hidden = false;
+    var calcul = d.lignes.map(function (l, i) { return (i ? "+ " : "") + euros(l.prix); }).join(" ");
+    box.appendChild(el("span", { text: "Prix pour ce véhicule" }));
+    box.appendChild(el("strong", { text: (d.lignes.length > 1 ? calcul + " = " : "") + euros(d.sousTotal) }));
+  }
+
   function renderStep1(full) {
     renderTabs();
     if (full !== false) renderPanel();
+    renderVTotal();
     renderDetail(estimateBox);
   }
 

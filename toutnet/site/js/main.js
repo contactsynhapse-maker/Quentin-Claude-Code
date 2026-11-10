@@ -193,13 +193,11 @@
     else media.hidden = true;
   }
 
-  function prixCarte(f) {
-    var vals = (C.vehicules || []).map(function (v) { return C.formules[0].id === f.id ? prixFormule(v, f.id) : supplementFormule(v, f.id); })
-      .filter(function (x) { return typeof x === "number"; });
-    if (!vals.length) return "";
-    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
-    if (C.formules[0].id === f.id) return "À partir de " + euros(mn);
-    return (mn === mx ? "+" + euros(mn) : "+" + mn + " à +" + euros(mx)) + " selon le véhicule";
+  function prixParVehicule(f) {
+    return el("ul", { class: "formula__prices", "aria-label": "Prix par véhicule" }, (C.vehicules || []).map(function (v) {
+      var p = prixFormule(v, f.id);
+      return typeof p === "number" ? el("li", null, [el("span", { text: v.nom }), el("strong", { text: euros(p) })]) : null;
+    }));
   }
   function renderFormules() {
     var box = $("[data-formules]");
@@ -209,12 +207,14 @@
         el("p", { class: "formula__tag", text: f.etiquette || "" }),
         el("h3", { text: f.nom }),
         f.sousTitre ? el("p", { class: "formula__sub", text: f.sousTitre }) : null,
-        el("p", { class: "formula__price", text: prixCarte(f) }),
-        el("ul", null, (f.inclus || []).map(function (i) { return el("li", null, [el("span", { class: "check", "aria-hidden": "true" }), i]); })),
+        f.accroche ? el("p", { class: "formula__pitch", text: f.accroche }) : null,
+        el("ul", { class: "formula__list" }, (f.inclus || []).map(function (i) { return el("li", null, [el("span", { class: "check", "aria-hidden": "true" }), i]); })),
+        prixParVehicule(f),
         el("a", { class: "btn " + (f.miseEnAvant ? "btn--accent" : "btn--primary"), href: "#reserver", "data-formule": f.id, text: "Choisir cette formule" }),
       ]));
     });
     var opt = $("[data-options]");
+    if ((C.options || []).length) opt.appendChild(el("p", { class: "extras__title", text: "Options : leur prix s'ajoute à celui de la formule choisie. Par exemple, un SUV en formule 2 (140 €) très sale revient à 140 € + 20 € = 160 €." }));
     (C.options || []).forEach(function (o) {
       opt.appendChild(el("div", { class: "extra" }, [
         el("span", { class: "extra__price", text: o.nom + (o.prix ? " +" + euros(o.prix) : "") }),
