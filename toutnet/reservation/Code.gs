@@ -25,7 +25,7 @@
 var TZ = "Europe/Paris";
 // Adresse du site (utilisée pour les boutons Accepter / Refuser des e-mails)
 // si le réglage « site_web » est vide.
-var SITE_DEFAUT = "https://contactsynhapse-maker.github.io/toutnet/";
+var SITE_DEFAUT = "https://toutnet-nettoyage.fr/";
 var FEUILLE_RESA = "Réservations";
 var FEUILLE_REGLAGES = "Réglages";
 var FEUILLE_DUREES = "Durées";

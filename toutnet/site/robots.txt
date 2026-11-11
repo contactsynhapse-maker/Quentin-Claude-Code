@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /decision.html
 
-Sitemap: https://contactsynhapse-maker.github.io/toutnet/sitemap.xml
+Sitemap: https://toutnet-nettoyage.fr/sitemap.xml
