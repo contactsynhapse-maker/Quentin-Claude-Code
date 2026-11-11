@@ -58,11 +58,11 @@ var REGLAGES_DEFAUT = [
 ];
 
 // Doivent correspondre aux identifiants `id` de js/config.js du site.
-var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"], ["commercial", "Véhicule commercial"]];
+var VEHICULES = [["citadine", "Citadine"], ["break-suv", "Break · SUV"], ["7-places", "7 places (van)"], ["camion", "Camion"], ["utilitaire", "Utilitaire"], ["commercial", "Voiture commerciale"]];
 var FORMULES = [["formule-1", "Formule 1 — Aspiration à sec"], ["formule-2", "Formule 2 — Nettoyage complet par extraction"]];
 var OPTIONS = [["vehicule-tres-sale", "Véhicule très sale"], ["poils-animaux", "Poils d'animaux"]];
 // Durées de départ (minutes), d'après Quentin : citadine et break/SUV 2 h (formule 1)
-// et 3 h (formule 2), utilitaire 3 h minimum, véhicule commercial 1 h 30 à 2 h.
+// et 3 h (formule 2), utilitaire 3 h minimum, voiture commerciale 1 h 30 à 2 h.
 // Les lignes « À CONFIRMER » sont provisoires.
 // Ajustables ensuite dans l'onglet « Durées », sans toucher au code.
 var DUREES_DEFAUT = {

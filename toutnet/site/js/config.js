@@ -83,7 +83,7 @@ window.SITE_CONFIG = {
     { id: "7-places",   nom: "7 places (van)",      image: "assets/vehicules/7-places.jpg",   prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 150 } },
     { id: "camion",     nom: "Camion",              image: "assets/vehicules/camion.jpg",     prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 150 } },
     { id: "utilitaire", nom: "Utilitaire",          image: "assets/vehicules/utilitaire.jpg", prixMin: 100, prixMax: 150, prix: { "formule-1": 100, "formule-2": 150 }, note: "Prix en fonction du véhicule" },
-    { id: "commercial", nom: "Véhicule commercial", image: "",                                prixMin: 90,  prixMax: 120, prix: { "formule-1": 90, "formule-2": 120 }, note: "Prix variable selon la propreté" },
+    { id: "commercial", nom: "Voiture commerciale", image: "assets/vehicules/commercial.jpg", prixMin: 90,  prixMax: 120, prix: { "formule-1": 90, "formule-2": 120 }, note: "Prix variable selon la propreté" },
   ],
 
   /* ------------------------------------------------------------------

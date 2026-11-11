@@ -149,7 +149,7 @@ button, input, textarea { font: inherit; }
 }
 
 /* ---------- Avantages ---------- */
-.perks { position: relative; z-index: 2; margin-top: -44px; }
+.perks { position: relative; z-index: 2; margin-top: -44px; padding-bottom: clamp(48px, 7vw, 80px); }
 .perks__grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
   background: var(--c-white); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden;
