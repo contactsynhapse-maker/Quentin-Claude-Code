@@ -174,7 +174,7 @@
     panelBox.appendChild(el("span", { class: "group-label" }, ["Formule ", type ? null : el("small", { text: "(choisissez d'abord le type pour voir les prix)" })]));
     panelBox.appendChild(el("div", { class: "choices choices--2", "data-field": "formule" }, (C.formules || []).map(function (f, i) {
       var prix = type ? euros(Site.prixFormule(type, f.id)) : "";
-      var c = choice("radio", "formule-" + v.uid, f.id, v.formule === f.id, f.nom, (f.etiquette || "") + (f.sousTitre ? " — " + f.sousTitre : ""), prix);
+      var c = choice("radio", "formule-" + v.uid, f.id, v.formule === f.id, f.nom, (f.etiquette || "") + (f.sousTitre ? " — " + f.sousTitre : "") + (f.duree ? " · " + f.duree.replace("Environ", "environ") : ""), prix);
       if (f.miseEnAvant) {
         c.classList.add("choice--reco");
         c.querySelector(".choice__body").insertBefore(el("span", { class: "choice__reco", text: "★ Recommandée" }), c.querySelector(".choice__name"));

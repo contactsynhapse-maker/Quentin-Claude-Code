@@ -95,6 +95,8 @@ window.SITE_CONFIG = {
       etiquette: "Formule 1 · La plus rapide",
       nom: "Aspiration à sec",
       sousTitre: "Nettoyage simple, sans shampouineuse",
+      duree: "Environ 2 h",
+      accroche: "Quentin aspire tout l'habitacle en détail : sièges, tapis, moquette et coffre, puis dépoussière le tableau de bord, les plastiques et les recoins.",
       inclus: ["Aspiration complète", "Dépoussiérage"],
     },
     {
@@ -102,6 +104,7 @@ window.SITE_CONFIG = {
       etiquette: "Formule 2 · La plus qualitative",
       nom: "Nettoyage complet par extraction",
       sousTitre: "Pour un intérieur impeccable, en profondeur",
+      duree: "Environ 3 h",
       accroche: "La formule recommandée par Quentin : la shampouineuse injecte puis aspire l'eau dans les tissus et extrait la saleté incrustée, là où un simple aspirateur ne va pas.",
       inclus: ["Tout de la formule 1 : aspiration complète et dépoussiérage", "Shampouinage des sièges par extraction", "Nettoyage approfondi de l'habitacle"],
       badge: "★ Recommandée · Résultat impeccable",

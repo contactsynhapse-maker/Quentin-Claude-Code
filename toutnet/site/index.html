@@ -55,9 +55,9 @@
         <span></span><span></span><span></span>
       </button>
       <nav class="nav" id="nav" aria-label="Navigation principale">
+        <a href="#avant-apres">Avant / Après</a>
         <a href="#formules">Formules</a>
         <a href="#tarifs">Tarifs</a>
-        <a href="#avant-apres">Avant / Après</a>
         <a href="#zone">Zone</a>
         <a href="#contact">Contact</a>
         <a href="#reserver" class="btn btn--small btn--accent">Réserver</a>
@@ -101,6 +101,18 @@
       </div>
     </section>
 
+    <!-- ============ AVANT / APRÈS ============ -->
+    <section class="section section--dark" id="avant-apres">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Résultats</p>
+          <h2>Avant / Après</h2>
+          <p class="section__sub">Faites glisser le curseur pour révéler le résultat.</p>
+        </div>
+        <div class="gallery" data-galerie></div>
+      </div>
+    </section>
+
     <!-- ============ FORMULES ============ -->
     <section class="section" id="formules">
       <div class="container">
@@ -128,15 +140,22 @@
       </div>
     </section>
 
-    <!-- ============ AVANT / APRÈS ============ -->
-    <section class="section section--dark" id="avant-apres">
-      <div class="container">
-        <div class="section__head">
-          <p class="eyebrow">Résultats</p>
-          <h2>Avant / Après</h2>
-          <p class="section__sub">Faites glisser le curseur pour révéler le résultat.</p>
+    <!-- ============ ZONE D'INTERVENTION ============ -->
+    <section class="zone" id="zone">
+      <div class="zone__head">
+        <div class="container">
+          <p class="eyebrow eyebrow--light">Zone d'intervention</p>
+          <h2 data-zone-titre>Autour de Lavaur, de Toulouse à Lacaune</h2>
+          <p class="zone__lead" data-zone-intro></p>
         </div>
-        <div class="gallery" data-galerie></div>
+      </div>
+      <div class="container zone__body">
+        <div class="zone__map-wrap">
+          <div class="zone__map" id="zone-carte" role="img" aria-label="Carte de la zone d'intervention de Tout'Net autour de Lavaur"></div>
+          <p class="zone__credit" data-zone-legende></p>
+        </div>
+        <div class="zone__communes" data-zone-communes></div>
+        <p class="zone__note" data-zone-note></p>
       </div>
     </section>
 
@@ -232,25 +251,6 @@
             </div>
           </form>
         </div>
-      </div>
-    </section>
-
-    <!-- ============ ZONE D'INTERVENTION ============ -->
-    <section class="zone" id="zone">
-      <div class="zone__head">
-        <div class="container">
-          <p class="eyebrow eyebrow--light">Zone d'intervention</p>
-          <h2 data-zone-titre>Autour de Lavaur, de Toulouse à Lacaune</h2>
-          <p class="zone__lead" data-zone-intro></p>
-        </div>
-      </div>
-      <div class="container zone__body">
-        <div class="zone__map-wrap">
-          <div class="zone__map" id="zone-carte" role="img" aria-label="Carte de la zone d'intervention de Tout'Net autour de Lavaur"></div>
-          <p class="zone__credit" data-zone-legende></p>
-        </div>
-        <div class="zone__communes" data-zone-communes></div>
-        <p class="zone__note" data-zone-note></p>
       </div>
     </section>
 

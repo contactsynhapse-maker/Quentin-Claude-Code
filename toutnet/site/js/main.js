@@ -207,6 +207,7 @@
         el("p", { class: "formula__tag", text: f.etiquette || "" }),
         el("h3", { text: f.nom }),
         f.sousTitre ? el("p", { class: "formula__sub", text: f.sousTitre }) : null,
+        f.duree ? el("p", { class: "formula__duree" }, [el("span", { class: "formula__duree-ico", "aria-hidden": "true", html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' }), el("span", null, [el("strong", { text: f.duree }), " d'intervention, selon le véhicule et son état"])]) : null,
         f.accroche ? el("p", { class: "formula__pitch", text: f.accroche }) : null,
         el("ul", { class: "formula__list" }, (f.inclus || []).map(function (i) { return el("li", null, [el("span", { class: "check", "aria-hidden": "true" }), i]); })),
         prixParVehicule(f),
