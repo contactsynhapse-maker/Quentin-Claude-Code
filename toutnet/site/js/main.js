@@ -282,7 +282,10 @@
       };
       if (imgA.complete) ratio(); else imgA.addEventListener("load", ratio);
       initSlider(ba);
-      box.appendChild(el("figure", null, [ba, el("figcaption", { class: titre ? "" : "tbd tbd-muted", text: titre || "Photos à venir" })]));
+      var legende = titre
+        ? el("figcaption", null, [el("strong", { text: titre }), filled(g.description) ? el("span", { class: "gallery__desc", text: g.description }) : null])
+        : el("figcaption", { class: "tbd tbd-muted", text: "Photos à venir" });
+      box.appendChild(el("figure", null, [ba, legende]));
       ratio();
     });
   }

@@ -94,10 +94,16 @@ window.SITE_CONFIG = {
       id: "formule-1",
       etiquette: "Formule 1 · La plus rapide",
       nom: "Aspiration à sec",
-      sousTitre: "Nettoyage simple, sans shampouineuse",
+      sousTitre: "Un intérieur propre et soigné, sans shampouineuse",
       duree: "Environ 2 h",
-      accroche: "Quentin aspire tout l'habitacle en détail : sièges, tapis, moquette et coffre, puis dépoussière le tableau de bord, les plastiques et les recoins.",
-      inclus: ["Aspiration complète", "Dépoussiérage"],
+      accroche: "Un nettoyage complet de l'habitacle, fait dans le détail : Quentin aspire, dépoussière et dégraisse chaque partie du véhicule, jusque dans les recoins.",
+      inclus: [
+        "Aspiration complète de l'habitacle : sièges, tapis et moquettes",
+        "Nettoyage et aspiration du coffre",
+        "Dépoussiérage de tous les plastiques : tableau de bord, écran, panneaux de porte, vide-poches",
+        "Dégraissage des vitres et du pare-brise",
+        "Nettoyage des contours de portières",
+      ],
     },
     {
       id: "formule-2",
@@ -106,7 +112,7 @@ window.SITE_CONFIG = {
       sousTitre: "Pour un intérieur impeccable, en profondeur",
       duree: "Environ 3 h",
       accroche: "La formule recommandée par Quentin : la shampouineuse injecte puis aspire l'eau dans les tissus et extrait la saleté incrustée, là où un simple aspirateur ne va pas.",
-      inclus: ["Tout de la formule 1 : aspiration complète et dépoussiérage", "Shampouinage des sièges par extraction", "Nettoyage approfondi de l'habitacle"],
+      inclus: ["Tout le contenu de la formule 1 : aspiration, plastiques, vitres et portières", "Shampouinage des sièges par extraction", "Nettoyage approfondi de l'habitacle"],
       badge: "★ Recommandée · Résultat impeccable",
       miseEnAvant: true,
     },
@@ -173,8 +179,8 @@ window.SITE_CONFIG = {
      détecté automatiquement.
      ------------------------------------------------------------------ */
   galerie: [
-    { titre: "Banquette arrière", avant: "assets/photos/banquette-avant.jpg", apres: "assets/photos/banquette-apres.jpg" },
-    { titre: "Coffre",            avant: "assets/photos/coffre-avant.jpg",    apres: "assets/photos/coffre-apres.jpg" },
+    { titre: "Banquette arrière", description: "Véhicule d'un particulier qui transporte régulièrement ses deux golden retrievers.", avant: "assets/photos/banquette-avant.jpg", apres: "assets/photos/banquette-apres.jpg" },
+    { titre: "Coffre",            description: "Mercedes Classe E après un transport de végétaux.",                                   avant: "assets/photos/coffre-avant.jpg",    apres: "assets/photos/coffre-apres.jpg" },
   ],
 
   /* ------------------------------------------------------------------

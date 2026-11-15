@@ -270,6 +270,8 @@ button, input, textarea { font: inherit; }
 .gallery figure { margin: 0; flex: var(--r, 1) 1 0; min-width: 260px; }
 @media (max-width: 700px) { .gallery { display: grid; grid-template-columns: 1fr; } .gallery figure { min-width: 0; } }
 .gallery figcaption { margin-top: 12px; font-weight: 600; text-align: center; }
+.gallery figcaption strong { display: block; font-weight: 600; }
+.gallery__desc { display: block; margin-top: 4px; font-size: .92rem; font-weight: 400; opacity: .82; line-height: 1.45; }
 .ba {
   --pos: 50%; position: relative; aspect-ratio: 4 / 3; border-radius: var(--radius); overflow: hidden;
   background: var(--c-navy-2); user-select: none; -webkit-user-select: none; touch-action: pan-y; box-shadow: var(--shadow-lg); cursor: ew-resize;
