@@ -143,7 +143,7 @@ Si une modification touche aux conditions (annulation, paiement, prix…), mets 
 - Le site est déclaré dans **Google Search Console**, avec le sitemap `https://toutnet-nettoyage.fr/sitemap.xml`.
 - Il existe une **fiche Google Business Profile** « Tout'Net », de catégorie « Service d'esthétique automobile », en zone desservie avec l'adresse masquée.
 - Dans `index.html`, il y a la balise `<title>`, la `meta description`, les balises Open Graph et un bloc **JSON-LD** (`AutoWash`). Ce bloc contient notamment `priceRange` (90 € – 150 €), `areaServed` et les coordonnées. **Si les prix, la zone ou les coordonnées changent, mets aussi ces balises à jour.** La meta description mentionne « Dès 90 € ».
-- Quand le contenu change de façon importante, mets à jour `<lastmod>` dans `sitemap.xml`.
+- Si une nouvelle page est créée, ajoute-la dans `sitemap.xml`. Les pages privées comme `decision.html` en sont exclues et restent bloquées dans `robots.txt`.
 
 ## 8. Idées et demandes en attente
 
